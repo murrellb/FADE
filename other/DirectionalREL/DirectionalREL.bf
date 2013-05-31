@@ -2,30 +2,65 @@
 /* define an associative array with key = amino acid and value = integer
 	index for AA in alphabetical order */
 AAString    = "ACDEFGHIKLMNPQRSTVWY";
-             //01234567890123456789
 
-//run_residue = 16; // run only this residue, -1 => run all residues
-run_residue = -1; // run only this residue, -1 => run all residues
-
-if(run_residue < 0)
+AACharToIdx = {};		/* this is never used :-P */
+for (k=0; k<20; k=k+1)
 {
-	fprintf(stdout, "Testing all amino acids...", "\n");
-}
-else
-{
-	fprintf(stdout, "Testing only amino acid ",AAString[run_residue],"...", "\n");
+	AACharToIdx [AAString[k]] = k;
 }
 
 SKIP_MODEL_PARAMETER_LIST = 0;
 
-#include "AddABias.c";
-#include "GrabBag.c";
+#include "AddABias.ibf";
+#include "Utility/GrabBag.bf";
 
 test_p_values = {20,2};
 
+/*--------------------------------------------------------------------------------------------*/
+/*	
+	returns stationary distribution vector for amino acids
+	UNUSED?!?
+*/
+function GetEqFreqs (ModelMatrixName&, baseFreqs)
+{
+	t = 1;
+	
+	/* duplicate instantaneous rate parameterization from template  model */
+	numRateMx = ModelMatrixName;
+	
+	for (ri = 0; ri < 20; ri = ri+1)
+	{
+		for (ci = 0; ci < 20; ci = ci+1)
+		{
+			if (ri != ci)
+			{
+				/* multiply entries by base frequencies */
+				numRateMx[ri][ci] = numRateMx[ri][ci] * baseFreqs[ci];
+				
+				/* diagonal entry is sum of off-diagonal row entries (Markov process) */
+				numRateMx[ri][ri] = numRateMx[ri][ri] - numRateMx[ri][ci];
+			}
+		}
+	}
+	
+	
+	for (ri = 0; ri < 20; ri = ri+1)
+	{
+		numRateMx [ri][19] = 1;
+	}
+	numRateMxI = Inverse (numRateMx);
+	return numRateMxI [19][-1];
+}
+
+/*--------------------------------------------------------------------------------------------*/
+
+SetDialogPrompt ("Protein file to examine:");
+
 ChoiceList						(reloadFlag, "Reload/New", 1, SKIP_NONE, "New analysis","Start a new analysis",
-																	      "Reload","Reload a baseline protein fit.");
-																		  
+																	      "Reload","Reload a baseline protein fit.",
+																	      "Reprocess the results","Regenerate sites from model fits.");
+
+
 ACCEPT_ROOTED_TREES 			= 1;
 
 if (reloadFlag == 0)
@@ -150,6 +185,7 @@ else
 	LFCompute (lf,LF_DONE_COMPUTE);
 }
 
+
 /* when the heck does biasedTree get called?  It's tucked inside runAFit() in AddABias.ibf... */
 root_left  = "biasedTree." + (treeAVL[(rootNode["Children"])[0]])["Name"] + ".t";
 root_right = "biasedTree." + (treeAVL[(rootNode["Children"])[1]])["Name"] + ".t";
@@ -178,10 +214,26 @@ bySiteSummary	 = {};
 
 /*------------------------------------------------------------------------------*/
 
+if (MPI_NODE_COUNT > 1)
+{
+	MPINodeStatus = {MPI_NODE_COUNT-1,1}["-1"];
+}
+
+
 
 for (residue = 0; residue < 20; residue = residue + 1)
 {
-	if(run_residue == residue || run_residue < 0)
+	if (reloadFlag == 2)	/* regenerate sites from results files */
+	{
+		lfb_MLES = {2,1};
+		ExecuteAFile (basePath + "." + AAString[residue]);
+		LFCompute (lfb,LF_START_COMPUTE);
+		LFCompute (lfb,res);
+		LFCompute (lfb,LF_DONE_COMPUTE);	
+		lfb_MLES [1][0] = res;
+		DoResults 						(residue);
+	}
+	else
 	{
 		AddABiasREL 					(modelNameString,"biasedMatrix",residue);	/* returns biasedMatrix object */
 		global P_bias2 					:= 1;
@@ -199,48 +251,51 @@ for (residue = 0; residue < 20; residue = residue + 1)
 		ExecuteCommands					(root_right + "=" + root_right);
 		LikelihoodFunction lfb 		= 	(filteredData, biasedTree);
 		
-
-		Optimize 						(lfb_MLES,lfb);
-		fprintf							(stdout, "Test ", "Bias term           = ", Format(rateBiasTo,8,3), "\n\tproportion          = ", Format(P_bias,8,3),"\n");
-		DoResults 						(residue);
+		
+		if (MPI_NODE_COUNT > 1)
+		{
+			SendAJob (residue);
+		}
+		else
+		{
+			Optimize 						(lfb_MLES,lfb);
+			DoResults 						(residue);
+		}
 	}
 }
 
+/*------------------------------------------------------------------------------*/
 
+if (MPI_NODE_COUNT > 1)
+{
+	jobsLeft = ({1,MPI_NODE_COUNT-1}["1"] * MPINodeStatus["_MATRIX_ELEMENT_VALUE_>=0"])[0];
+
+	for (nodeID = 0; nodeID < jobsLeft; nodeID = nodeID + 1)
+	{
+		MPIReceive (-1, fromNode, theJob);
+		oldRes = MPINodeStatus[fromNode-1];
+		ExecuteCommands (theJob);
+		DoResults (oldRes);	
+	}
+}
+
+/*------------------------------------------------------------------------------*/
 
 fprintf							(substitutionsPath, CLEAR_FILE, KEEP_OPEN, "Site,From,To,Count");
 fprintf							(siteReportMap,     CLEAR_FILE, KEEP_OPEN, "Site");
 for (k=0; k<20; k=k+1)
 {
-	if(run_residue == k || run_residue < 0)
-	{
-		fprintf (siteReportMap, ",", AAString[k]);
-	}
+	fprintf (siteReportMap, ",", AAString[k]);
 }
 fprintf (siteReportMap, "\nLRT p-value"); 
 
-// set unused residue's pvalues to zero
-if(run_residue >= 0)
-{
-	for (k=0; k<20; k=k+1)
-	{
-		if(run_residue != k)
-		{
-			test_p_values[k][0] = 1;
-		}
-	}
-}
-
-test_p_values       = test_p_values % 0; // sort the matrix by p-values ( stored in column)
+test_p_values       = test_p_values % 0;
 rejectedHypotheses   = {};
 
 for (k=0; k<20; k=k+1)
 {
-	if(run_residue == k || run_residue < 0)
-	{
-		pv      = (byResidueSummary[AAString[k]])["p"];
-		fprintf (siteReportMap, ",", pv);
-	}
+	pv      = (byResidueSummary[AAString[k]])["p"];
+	fprintf (siteReportMap, ",", pv);
 }
 
 fprintf (stdout, 	  "\nResidues (and p-values) for which there is evidence of directional selection\n");
@@ -248,27 +303,16 @@ fprintf (summaryPath, "\nResidues (and p-values) for which there is evidence of 
 
 for (k=0; k<20; k=k+1)
 {
-	
-	if(run_residue >= 0 && test_p_values[k][0] < 0.05) // only testing one amino acid, so no multiple testing correction
-	{	
+	if (test_p_values[k][0] < (0.05/(20-k)))
+	{
 		rejectedHypotheses  [test_p_values[k][1]]           = 1;
 		rejectedHypotheses  [AAString[test_p_values[k][1]]] = 1;
 		fprintf (stdout, 		"\n\t", AAString[test_p_values[k][1]], " : ",test_p_values[k][0] );
 		fprintf (summaryPath, 	"\n\t", AAString[test_p_values[k][1]], " : ",test_p_values[k][0] );
 	}
 	else
-	{	
-		if (test_p_values[k][0] < (0.05/(20-k)))
-		{
-			rejectedHypotheses  [test_p_values[k][1]]           = 1;
-			rejectedHypotheses  [AAString[test_p_values[k][1]]] = 1;
-			fprintf (stdout, 		"\n\t", AAString[test_p_values[k][1]], " : ",test_p_values[k][0] );
-			fprintf (summaryPath, 	"\n\t", AAString[test_p_values[k][1]], " : ",test_p_values[k][0] );
-		}
-		else
-		{
-			break;
-		}
+	{
+		break;
 	}
 }
 
@@ -304,21 +348,18 @@ for (k=0; k<filteredData.sites; k=k+1)
 		pv			 = 0;
 		for (k2=0; k2<20; k2=k2+1)
 		{
-			if(run_residue == k2 || run_residue < 0)
+			if (Abs((byResidueSummary[AAString[k2]])["BFs"]) == 0 || rejectedHypotheses[k2] == 0)
 			{
-				if (Abs((byResidueSummary[AAString[k2]])["BFs"]) == 0 || rejectedHypotheses[k2] == 0)
+				fprintf (siteReportMap, ",N/A");
+			}
+			else
+			{
+				thisSitePV = ((byResidueSummary[AAString[k2]])["BFs"])[k];
+				pv = Max(pv,thisSitePV);
+				fprintf (siteReportMap, ",", thisSitePV);			
+				if (pv > 100)
 				{
-					fprintf (siteReportMap, ",N/A");
-				}
-				else
-				{
-					thisSitePV = ((byResidueSummary[AAString[k2]])["BFs"])[k];
-					pv = Max(pv,thisSitePV);
-					fprintf (siteReportMap, ",", thisSitePV);			
-					if (pv > 100)
-					{
-						didSomething = 1;
-					}
+					didSomething = 1;
 				}
 			}
 		}
@@ -342,14 +383,11 @@ for (k=0; k<filteredData.sites; k=k+1)
 		
 		for (k2 = 0; k2 < Abs (bySiteSummary[k]); k2=k2+1)
 		{
-			if(run_residue == k2 || run_residue < 0)
+			thisChar = (bySiteSummary[k])[k2];
+			if (rejectedHypotheses[thisChar])
 			{
-				thisChar = (bySiteSummary[k])[k2];
-				if (rejectedHypotheses[thisChar])
-				{
-					fprintf (stdout,      thisChar);
-					fprintf (summaryPath, thisChar);
-				}
+				fprintf (stdout,      thisChar);
+				fprintf (summaryPath, thisChar);
 			}
 		}
 
@@ -404,6 +442,32 @@ function computeDelta (ModelMatrixName&, efv, t_0, which_cat)
 	}
 	return Transpose(efv)*(Exp (rmx) - {20,20}["_MATRIX_ELEMENT_ROW_==_MATRIX_ELEMENT_COLUMN_"]);
 }
+
+/*------------------------------------------------------------------------------*/
+
+function SendAJob (residueIn)
+{
+	for (nodeID = 0; nodeID < MPI_NODE_COUNT -1; nodeID = nodeID + 1)
+	{
+		if (MPINodeStatus[nodeID] < 0)	/* semaphore indicates available node */
+		{
+			MPINodeStatus[nodeID] = residueIn;
+			MPISend (nodeID+1,lfb);
+			break;
+		}
+	}
+	if (nodeID == MPI_NODE_COUNT - 1)	/* looped through semaphore with no idle nodes */
+	{
+		MPIReceive (-1, fromNode, theJob);	/* wait until one of the node completes its job */
+		oldRes = MPINodeStatus[fromNode-1];
+		MPISend (fromNode,lfb);
+		MPINodeStatus[fromNode-1] = residueIn;
+		ExecuteCommands (theJob);	/* load serialized LF into master node memory */
+		DoResults (oldRes);
+	}
+	return 0;
+}
+
 /*------------------------------------------------------------------------------*/
 
 function DoResults (residueIn)
@@ -429,10 +493,12 @@ function DoResults (residueIn)
 											 	  "\n\tproportion          = ", Format(fr1,8,3),
 											      "\n\tExp freq increase   = ", Format(rateAccel1*100,8,3), "%",
 											      "\n\tp-value    = ", Format(pv,8,3),"\n");
-
-	LIKELIHOOD_FUNCTION_OUTPUT = 7;
-	outPath = basePath + "." + residueC;
-	fprintf (outPath, CLEAR_FILE, lfb);
+	if (reloadFlag != 2)
+	{
+		LIKELIHOOD_FUNCTION_OUTPUT = 7;
+		outPath = basePath + "." + residueC;
+		fprintf (outPath, CLEAR_FILE, lfb);
+	}
 
 	byResidueSummary [residueC] = {};
 	(byResidueSummary [residueC])["p"] = pv;		
