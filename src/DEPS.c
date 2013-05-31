@@ -5,12 +5,15 @@ AAString    = "ACDEFGHIKLMNPQRSTVWY";
              //01234567890123456789
 
 //run_residue = 16; // run only this residue, -1 => run all residues
-run_residue = 2; // run only this residue, -1 => run all residues
+run_residue = -1; // run only this residue, -1 => run all residues
 
-AACharToIdx = {};		/* this is never used :-P */
-for (k=0; k<20; k=k+1)
+if(run_residue < 0)
 {
-	AACharToIdx [AAString[k]] = k;
+	fprintf(stdout, "Testing all amino acids...", "\n");
+}
+else
+{
+	fprintf(stdout, "Testing only amino acid ",AAString[run_residue],"...", "\n");
 }
 
 SKIP_MODEL_PARAMETER_LIST = 0;
