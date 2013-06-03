@@ -301,18 +301,11 @@ function computeLFOnGrid (lfID, grid, doConditionals) {
                     }
             }
 		}
+
     }
 
     if (doConditionals) {
-		/*likelihoods = {points, _siteCount};
-		for (_r = 0; _r < points; _r += 1){
-			for (_c = 0; _c < _siteCount; _c += 1) {
-				likelihoods[_r][_c] = conditionals[_r][_c];
-			}
-		}*/
-	
         for (_c = 0; _c < _siteCount; _c += 1) {
-			// convert log-likelihood to probabilities
             this_site  = conditionals[-1][_c];
             best_log_l = Min (this_site*(-1),0);
             this_site  = (this_site + best_log_l)["Exp(_MATRIX_ELEMENT_VALUE_)"];
@@ -326,7 +319,6 @@ function computeLFOnGrid (lfID, grid, doConditionals) {
         
         result["conditionals"] = conditionals;
         result["scalers"]      = scaler;
-		//result["likelihoods"] = likelihoods;
     } else {
         return conditionals;
     }

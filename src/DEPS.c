@@ -21,6 +21,8 @@ SKIP_MODEL_PARAMETER_LIST = 0;
 #include "AddABias.c";
 #include "GrabBag.c";
 #include "FUBAR_tools.ibf";
+LoadFunctionLibrary ("GrabBag");
+LoadFunctionLibrary ("ReadDelimitedFiles");
 
 test_p_values = {20,2};
 
@@ -217,7 +219,7 @@ for (residue = 0; residue < 20; residue = residue + 1)
 		alpha:=1; // need to constrain gamma before optimization
 		beta:=1; // need to constrain bias before optimization
 		
-		fprintf(stdout,"something","\n");
+
 		Optimize 						(lfb_MLES,lfb);
 		
 		fprintf(stdout,"something2","\n");
@@ -225,8 +227,14 @@ for (residue = 0; residue < 20; residue = residue + 1)
 		ClearConstraints(alpha);
 		ClearConstraints(beta);
 		
-		result = computeLFOnGrid("lfb", depsGrid, 1);
-		fprintf(stdout, result,"\n");
+		gridInfoFile = LAST_FILE_PATH +"."+AAString[residue]+".grid_info";
+ 
+		//computeLFOnGrid ("lfb", depsGrid, 0);
+		fprintf(stdout,gridInfoFile,"\n");
+		gridInfo = computeLFOnGrid("lfb", depsGrid, 1);
+		fprintf (gridInfoFile,CLEAR_FILE, depsGrid, "\n", gridInfo);
+		callPhase3(gridInfoFile);
+
 		
 		fprintf							(stdout, "Test ", "Bias term           = ", Format(rateBiasTo,8,5), "\n\tproportion          = ", Format(P_bias,8,5),"\n");
 		DoResults 						(residue);
@@ -408,6 +416,36 @@ fprintf (summaryPath, 		CLOSE_FILE);
 fprintf (siteReportMap, 	CLOSE_FILE);
 fprintf (stdout, "\n");
 
+function callPhase3(gridInfoFile)
+{
+    fprintf(stdout,"callPhase3","\n");
+    //_fubarMCMCSamplesLocation = filePaths["Base"] + filePaths["MCMC samples"];
+    _fubarMCMCSamplesLocation =  LAST_FILE_PATH +"."+AAString[residue]+".samples";
+    _fubarGridInfoLocation = gridInfoFile;
+
+    _cachingOK = 0;
+    _fubarChainCount = prompt_for_a_value ("Number of MCMC chains to run",5,2,20,1);
+    fprintf (stdout, "[DIAGNOSTIC] FUBAR will use run ", _fubarChainCount, " independent chains\n"); 
+    _fubarChainLength  = prompt_for_a_value ("The length of each chain",2000000,500000,100000000,1);    
+    fprintf (stdout, "[DIAGNOSTIC] FUBAR will run the chains for ", _fubarChainLength, " steps\n"); 
+    _fubarChainBurnin  = prompt_for_a_value ("Discard this many samples as burn-in",_fubarChainLength$2,_fubarChainLength$20,_fubarChainLength*95$100,1);
+    fprintf (stdout, "[DIAGNOSTIC] FUBAR will run discard ", _fubarChainBurnin, " steps as burn-in\n"); 
+    _fubarTotalSamples = prompt_for_a_value ("How many samples should be drawn from each chain",100,10,_fubarChainLength-_fubarChainBurnin,1);    
+    fprintf (stdout, "[DIAGNOSTIC] FUBAR will run thin each chain down to ", _fubarTotalSamples, " samples\n"); 
+    _fubarPriorShape = prompt_for_a_value ("The concentration parameter of the Dirichlet prior",0.5,0.001,1,0);    
+    fprintf (stdout, "[DIAGNOSTIC] FUBAR will use the Dirichlet prior concentration parameter of ", _fubarPriorShape, "\n"); 
+
+    ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"DEPS_PHASE_3.bf"}}), {"0" : _fubarMCMCSamplesLocation,
+                                                                                                                                 "1" : _fubarGridInfoLocation,
+                                                                                                                                 "2" : "" + _fubarChainCount,
+                                                                                                                                 "3" : "" + _fubarChainLength,
+                                                                                                                                 "4" : "" + _fubarChainBurnin,
+                                                                                                                                 "5" : "" + _fubarTotalSamples,
+                                                                                                                                 "6" : "" + _fubarPriorShape
+                                                                                                                                  });
+}
+
+
 /*--------------------------------------------------------------------------------------------*/
 /* 
 	Compute the difference vector between the stationary distribution at the root (efv) and the expected
@@ -480,7 +518,6 @@ function DoResults (residueIn)
 		//fprintf(stdout, "C: ", c,"\n",c[0], "\n");
 		
 		GetInformation 				(cInfo, c);
-		fprintf(stdout, "Cinfo: ", cInfo, "\n");
 		GetInformation 				(_CATEGORY_VARIABLE_CDF_, catVar);
 		
 		ccc	= Columns (cInfo);
