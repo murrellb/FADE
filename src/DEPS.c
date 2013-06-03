@@ -5,7 +5,7 @@ AAString    = "ACDEFGHIKLMNPQRSTVWY";
              //01234567890123456789
 
 //run_residue = 16; // run only this residue, -1 => run all residues
-run_residue = -1; // run only this residue, -1 => run all residues
+run_residue = 2; // run only this residue, -1 => run all residues
 
 if(run_residue < 0)
 {
@@ -20,6 +20,7 @@ SKIP_MODEL_PARAMETER_LIST = 0;
 
 #include "AddABias.c";
 #include "GrabBag.c";
+#include "FUBAR_tools.ibf";
 
 test_p_values = {20,2};
 
@@ -183,7 +184,20 @@ for (residue = 0; residue < 20; residue = residue + 1)
 {
 	if(run_residue == residue || run_residue < 0)
 	{
-		AddABiasREL 					(modelNameString,"biasedMatrix",residue);	/* returns biasedMatrix object */
+		AddABiasFADE					(modelNameString,"biasedMatrix",residue);	
+		//AddABiasREL 					(modelNameString,"biasedMatrix",residue);	/* returns biasedMatrix object */
+		
+		depsGrid = 						defineFadeGrid (20, 20);
+		index = 0;
+		for(_x = 0 ; _x < 20 ; _x += 1)
+		{
+			for(_y = 0 ; _y < 20 ; _y += 1)
+			{
+				fprintf(stdout,_x,",",_y,"\t",depsGrid[index][0],"\t",depsGrid[index][1],"\n");
+				index += 1;
+			}
+		}
+		
 		global P_bias2 					:= 1;
 		global relBias					:= 1;
 		
@@ -199,9 +213,22 @@ for (residue = 0; residue < 20; residue = residue + 1)
 		ExecuteCommands					(root_right + "=" + root_right);
 		LikelihoodFunction lfb 		= 	(filteredData, biasedTree);
 		
-
+		//Optimize 						(lfb_MLES,lfb);
+		alpha:=1; // need to constrain gamma before optimization
+		beta:=1; // need to constrain bias before optimization
+		
+		fprintf(stdout,"something","\n");
 		Optimize 						(lfb_MLES,lfb);
-		fprintf							(stdout, "Test ", "Bias term           = ", Format(rateBiasTo,8,3), "\n\tproportion          = ", Format(P_bias,8,3),"\n");
+		
+		fprintf(stdout,"something2","\n");
+		
+		ClearConstraints(alpha);
+		ClearConstraints(beta);
+		
+		result = computeLFOnGrid("lfb", depsGrid, 1);
+		fprintf(stdout, result,"\n");
+		
+		fprintf							(stdout, "Test ", "Bias term           = ", Format(rateBiasTo,8,5), "\n\tproportion          = ", Format(P_bias,8,5),"\n");
 		DoResults 						(residue);
 	}
 }
@@ -413,22 +440,22 @@ function DoResults (residueIn)
 	fprintf							(summaryPath, "[PHASE ",residueIn+1,".1] Model biased for ",residueC,"\n"); 
 
 	pv							=   1-CChi2(2(lfb_MLES[1][0]-baselineLogL),3);	/* approximate p-value */
-	fprintf							(stdout, "[PHASE ",residueIn+1,".2] Finished with the model biased for ",residueC,". Log-L = ",Format(lfb_MLES[1][0],8,3),"\n"); 
-	fprintf							(summaryPath, "[PHASE ",residueIn+1,".2] Finished with the model biased for ",residueC,". Log-L = ",Format(lfb_MLES[1][0],8,3),"\n"); 
+	fprintf							(stdout, "[PHASE ",residueIn+1,".2] Finished with the model biased for ",residueC,". Log-L = ",Format(lfb_MLES[1][0],8,5),"\n"); 
+	fprintf							(summaryPath, "[PHASE ",residueIn+1,".2] Finished with the model biased for ",residueC,". Log-L = ",Format(lfb_MLES[1][0],8,5),"\n"); 
 	
 	fr1 						= 	P_bias;
 	
 	rateAccel1					=   (computeDelta("biasedMatrix",vectorOfFrequencies,referenceL,1))[residueIn];
 	
-	fprintf							(stdout, "\n\tBias term           = ", Format(rateBiasTo,8,3),
-											 "\n\tproportion          = ", Format(fr1,8,3),
-											 "\n\tExp freq increase   = ", Format(rateAccel1*100,8,3), "%",
-											 "\n\tp-value    = ", Format(pv,8,3),"\n");
+	fprintf							(stdout, "\n\tBias term           = ", Format(rateBiasTo,8,5),
+											 "\n\tproportion          = ", Format(fr1,8,5),
+											 "\n\tExp freq increase   = ", Format(rateAccel1*100,8,5), "%",
+											 "\n\tp-value    = ", Format(pv,8,5),"\n");
 											 
-	fprintf							(summaryPath, "\n\tBias term           = ", Format(rateBiasTo,8,3),
-											 	  "\n\tproportion          = ", Format(fr1,8,3),
-											      "\n\tExp freq increase   = ", Format(rateAccel1*100,8,3), "%",
-											      "\n\tp-value    = ", Format(pv,8,3),"\n");
+	fprintf							(summaryPath, "\n\tBias term           = ", Format(rateBiasTo,8,5),
+											 	  "\n\tproportion          = ", Format(fr1,8,5),
+											      "\n\tExp freq increase   = ", Format(rateAccel1*100,8,5), "%",
+											      "\n\tp-value    = ", Format(pv,8,5),"\n");
 
 	LIKELIHOOD_FUNCTION_OUTPUT = 7;
 	outPath = basePath + "." + residueC;
@@ -450,7 +477,10 @@ function DoResults (residueIn)
 		dim = Columns (mmx);
 		_MARGINAL_MATRIX_	= {2, dim};
 		
+		//fprintf(stdout, "C: ", c,"\n",c[0], "\n");
+		
 		GetInformation 				(cInfo, c);
+		fprintf(stdout, "Cinfo: ", cInfo, "\n");
 		GetInformation 				(_CATEGORY_VARIABLE_CDF_, catVar);
 		
 		ccc	= Columns (cInfo);

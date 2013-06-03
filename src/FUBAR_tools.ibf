@@ -304,12 +304,12 @@ function computeLFOnGrid (lfID, grid, doConditionals) {
     }
 
     if (doConditionals) {
-		likelihoods = {points, _siteCount};
+		/*likelihoods = {points, _siteCount};
 		for (_r = 0; _r < points; _r += 1){
 			for (_c = 0; _c < _siteCount; _c += 1) {
 				likelihoods[_r][_c] = conditionals[_r][_c];
 			}
-		}
+		}*/
 	
         for (_c = 0; _c < _siteCount; _c += 1) {
 			// convert log-likelihood to probabilities
@@ -326,7 +326,7 @@ function computeLFOnGrid (lfID, grid, doConditionals) {
         
         result["conditionals"] = conditionals;
         result["scalers"]      = scaler;
-		result["likelihoods"] = likelihoods;
+		//result["likelihoods"] = likelihoods;
     } else {
         return conditionals;
     }
