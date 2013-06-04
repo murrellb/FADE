@@ -1,17 +1,32 @@
 pThresh = 0.001;
 
+function CreateBackgroundModelFADE (ModelMatrixName&, ModelMatrixName2&)
+{
+	ModelMatrixName2 = {20,20};
+	
+	t = 1;	/* branch length, local parameter */
+	_numericRateMatrix = ModelMatrixName;
+
+	for (ri = 0; ri < 20; ri = ri+1)
+	{
+		for (ci = ri+1; ci < 20; ci = ci+1)
+		{
+			ModelMatrixName2[ri][ci] := _numericRateMatrix__[ri__][ci__] * t;
+			ModelMatrixName2[ci][ri] := _numericRateMatrix__[ri__][ci__] * t;
+		
+		}
+	}
+	return 1;
+}
+
+
 function AddABiasFADE (ModelMatrixName&, ModelMatrixName2&, biasedBase)
 {
 	ModelMatrixName2 = {20,20};
 	
 	t = 1;	/* branch length, local parameter */
 	_numericRateMatrix = ModelMatrixName;
-	
-	/* the probability that site is undergoing biased substitution rates */
-	/*
-	global	  P_bias = 0.1;  P_bias :< 0.5;
-	category catVar = (2,{{1-P_bias,P_bias}},MEAN,,{{0,1}},0,1);
-	*/
+
 	global alpha = 1;
 	global beta = 1;
 	

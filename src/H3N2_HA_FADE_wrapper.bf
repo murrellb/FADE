@@ -7,4 +7,4 @@ inputRedirect["05"]="500000"; // number of MCMC iterations
 inputRedirect["06"]="250000"; // burn-in
 inputRedirect["07"]="100"; //number of samples to draw
 inputRedirect["08"]="0.5"; // Dirichlet concentration parameters
-ExecuteAFile ("DEPS.c", inputRedirect);
+ExecuteAFile ("FADE.c", inputRedirect);

@@ -1,0 +1,2 @@
+To run MPI on local machine, mpiexec.hydra may be required
+mpiexec.hydra -n 8 HYPHYMPI FADE.c
