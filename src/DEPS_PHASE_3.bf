@@ -1,81 +1,87 @@
-fscanf              (stdin,"String", _sampleFile);
-fscanf              (stdin,"String", _gridInfo);
+function runPhase3(_sampleFile, _gridInfo, _chainsToRun, _chainLength, _chainBurnin, _chainSamples, _concentration)
+{
+	/*
+	fscanf              (stdin,"String", _sampleFile);
+	fscanf              (stdin,"String", _gridInfo);
 
 
-fscanf              (stdin,"Number", _chainsToRun);
-fscanf              (stdin,"Number", _chainLength);
-fscanf              (stdin,"Number", _chainBurnin);
-fscanf              (stdin,"Number", _chainSamples);
-fscanf              (stdin,"Number", _concentration);
+	fscanf              (stdin,"Number", _chainsToRun);
+	fscanf              (stdin,"Number", _chainLength);
+	fscanf              (stdin,"Number", _chainBurnin);
+	fscanf              (stdin,"Number", _chainSamples);
+	fscanf              (stdin,"Number", _concentration);
+        */
 
-ExecuteAFile        (PATH_TO_CURRENT_BF + "FUBAR_tools.ibf");
+	ExecuteAFile        (PATH_TO_CURRENT_BF + "FUBAR_tools.ibf");
 
-assert (_chainsToRun > 1, "Must specify at least MCMC TWO chains to run");
+	assert (_chainsToRun > 1, "Must specify at least MCMC TWO chains to run");
 
-/* the MCMC function */
+	/* the MCMC function */
 
-baseFilePath  		= PATH_TO_CURRENT_BF + "spool/"+_in_FilePath;
+	baseFilePath  		= PATH_TO_CURRENT_BF + "spool/"+_in_FilePath;
 
-debug = 0;
+	debug = 0;
 
-if (!debug) {
-    funcText = "";
-    funcsToExport = {"0": "runMCMC", "1": "jointLogL", "2": "LogDrichletDensity", "3": "computeLogLFfromGridAndWeights", "4": "siteLikelihoodsGivenWeights"};
-    for (k = 0; k < Abs (funcsToExport); k+=1) {
-        funcText += exportFunctionDefinition (funcsToExport[k]);
-    }
-    
-    
-     funcText += "\nfor (_chainIndex=start; _chainIndex<end; _chainIndex+=1) {runMCMC(_chainIndex,_gridInfo,_sampleFile,_chainLength,_chainBurnin,_chainSamples,_concentration);} return 0;";
-    
-     variablesToExport = "_gridInfo = \"" + _gridInfo + "\";\n" + 
-                         "_sampleFile = \"" + _sampleFile + "\";\n" +   
-                         "_chainsToRun = " + _chainsToRun + ";\n" +   
-                         "_chainLength = " + _chainLength + ";\n" +   
-                         "_chainBurnin = " + _chainBurnin + ";\n" +   
-                         "_chainSamples = " + _chainSamples + ";\n" +   
-                         "_concentration = " + _concentration + ";\n";
+	if (!debug) {
+	    funcText = "";
+	    funcsToExport = {"0": "runMCMC", "1": "jointLogL", "2": "LogDrichletDensity", "3": "computeLogLFfromGridAndWeights", "4": "siteLikelihoodsGivenWeights"};
+	    for (k = 0; k < Abs (funcsToExport); k+=1) {
+		funcText += exportFunctionDefinition (funcsToExport[k]);
+	    }
+	    
+	    
+	     funcText += "\nfor (_chainIndex=start; _chainIndex<end; _chainIndex+=1) {runMCMC(_chainIndex,_gridInfo,_sampleFile,_chainLength,_chainBurnin,_chainSamples,_concentration);} return 0;";
+	    
+	     variablesToExport = "_gridInfo = \"" + _gridInfo + "\";\n" + 
+		                 "_sampleFile = \"" + _sampleFile + "\";\n" +   
+		                 "_chainsToRun = " + _chainsToRun + ";\n" +   
+		                 "_chainLength = " + _chainLength + ";\n" +   
+		                 "_chainBurnin = " + _chainBurnin + ";\n" +   
+		                 "_chainSamples = " + _chainSamples + ";\n" +   
+		                 "_concentration = " + _concentration + ";\n";
 
-     if (MPI_NODE_COUNT > 1 && _chainsToRun > 1) {
-            per_node    = Max(1,_chainsToRun $ MPI_NODE_COUNT);
-            _startPoint = _chainsToRun-per_node;
-            leftover    = _chainsToRun-per_node*MPI_NODE_COUNT;
-            
-            from          = 0;
-            to            = per_node + (leftover>0);
-            node_ranges   = {MPI_NODE_COUNT,2};
-            
-            for (node_id = 1; node_id < Min(_chainsToRun,MPI_NODE_COUNT); node_id += 1) {
-                                        
-                MPISend				(node_id, variablesToExport + ";start = " +from + ";end=" + to+";" + funcText); 
-                
-                
-                node_ranges [node_id][0]         = from;
-                node_ranges [node_id][1]         = to;
-                
-                from                             = to;
-                to                              += per_node+(node_id<=leftover);  
-            } 
-        } else {
-        _startPoint = 0;    
-    }
-        
-    for (_r = _startPoint; _r < _chainsToRun; _r += 1){
-        runMCMC(_r,_gridInfo,_sampleFile,_chainLength,_chainBurnin,_chainSamples,_concentration);
-    }
-    
-    fprintf         (stdout, "\n[FUBAR PHASE 3 DONE] Finished running the MCMC chains; drew ", _chainsToRun, "x", _chainSamples, " samples from chains of length ", _chainLength, 
-                             " after discarding ", _chainBurnin, " burn-in steps. Achieved throughput of ", Format(_chainLength/(Time(1)-time0),6,0) + " moves/sec.\n");
-   
-    if (MPI_NODE_COUNT > 1 && points > MPI_NODE_COUNT) {
-        for (node_id = 1; node_id < Min(_chainsToRun,MPI_NODE_COUNT); node_id += 1) {
-            MPIReceive (-1,fromNode,res);
-        }
-    }
+	     if (MPI_NODE_COUNT > 1 && _chainsToRun > 1) {
+		    per_node    = Max(1,_chainsToRun $ MPI_NODE_COUNT);
+		    _startPoint = _chainsToRun-per_node;
+		    leftover    = _chainsToRun-per_node*MPI_NODE_COUNT;
+		    
+		    from          = 0;
+		    to            = per_node + (leftover>0);
+		    node_ranges   = {MPI_NODE_COUNT,2};
+		    
+		    for (node_id = 1; node_id < Min(_chainsToRun,MPI_NODE_COUNT); node_id += 1) {
+		                                
+		        MPISend				(node_id, variablesToExport + ";start = " +from + ";end=" + to+";" + funcText); 
+		        
+		        
+		        node_ranges [node_id][0]         = from;
+		        node_ranges [node_id][1]         = to;
+		        
+		        from                             = to;
+		        to                              += per_node+(node_id<=leftover);  
+		    } 
+		} else {
+		_startPoint = 0;    
+	    }
+		
+	    for (_r = _startPoint; _r < _chainsToRun; _r += 1){
+		runMCMC(_r,_gridInfo,_sampleFile,_chainLength,_chainBurnin,_chainSamples,_concentration);
+	    }
+	    
+	    fprintf         (stdout, "\n[FUBAR PHASE 3 DONE] Finished running the MCMC chains; drew ", _chainsToRun, "x", _chainSamples, " samples from chains of length ", _chainLength, 
+		                     " after discarding ", _chainBurnin, " burn-in steps. Achieved throughput of ", Format(_chainLength/(Time(1)-time0),6,0) + " moves/sec.\n");
+	   
+	    if (MPI_NODE_COUNT > 1 && points > MPI_NODE_COUNT) {
+		for (node_id = 1; node_id < Min(_chainsToRun,MPI_NODE_COUNT); node_id += 1) {
+		    MPIReceive (-1,fromNode,res);
+		}
+	    }
 
-    fprintf (_sampleFile,CLEAR_FILE, _chainsToRun, "\n");
+	    fprintf (_sampleFile,CLEAR_FILE, _chainsToRun, "\n");
+	}
+
+	return 0;
 }
-
 //------------------------------------------------------------------------------------------------//
 
 function jointLogL (weights, alpha) {
