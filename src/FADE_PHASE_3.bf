@@ -1,6 +1,6 @@
-function runPhase3(_sampleFile, _gridInfo, _chainsToRun, _chainLength, _chainBurnin, _chainSamples, _concentration)
-{
-	/*
+//function runPhase3(_sampleFile, _gridInfo, _chainsToRun, _chainLength, _chainBurnin, _chainSamples, _concentration)
+//{
+	
 	fscanf              (stdin,"String", _sampleFile);
 	fscanf              (stdin,"String", _gridInfo);
 
@@ -10,7 +10,8 @@ function runPhase3(_sampleFile, _gridInfo, _chainsToRun, _chainLength, _chainBur
 	fscanf              (stdin,"Number", _chainBurnin);
 	fscanf              (stdin,"Number", _chainSamples);
 	fscanf              (stdin,"Number", _concentration);
-        */
+       
+	//fprintf(stdout,"FADE PHASE 3",_sampleFile,"\t",_gridInfo,"\t",_chainsToRun,"\t",_chainLength,"\t",_chainBurnin,"\t",_chainSamples,"\t",_concentration,"\n");
 
 	ExecuteAFile        (PATH_TO_CURRENT_BF + "FUBAR_tools.ibf");
 
@@ -80,8 +81,8 @@ function runPhase3(_sampleFile, _gridInfo, _chainsToRun, _chainLength, _chainBur
 	    fprintf (_sampleFile,CLEAR_FILE, _chainsToRun, "\n");
 	}
 
-	return 0;
-}
+	//return 0;
+//}
 //------------------------------------------------------------------------------------------------//
 
 function jointLogL (weights, alpha) {

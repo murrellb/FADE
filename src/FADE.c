@@ -1,3 +1,4 @@
+//callPhase4();
 
 /* define an associative array with key = amino acid and value = integer
 	index for AA in alphabetical order */
@@ -5,7 +6,10 @@ AAString    = "ACDEFGHIKLMNPQRSTVWY";
              //01234567890123456789
 
 //run_residue = 16; // run only this residue, -1 => run all residues
-run_residue = -1; // run only this residue, -1 => run all residues
+//run_residue = -1; // run only this residue, -1 => run all residues
+run_residue = -1;
+num_alpha = 10;
+num_beta = 10;
 
 if(run_residue < 0)
 {
@@ -21,7 +25,7 @@ SKIP_MODEL_PARAMETER_LIST = 0;
 #include "AddABias.c";
 #include "GrabBag.c";
 #include "FUBAR_tools.ibf";
-#include "FADE_PHASE_3.bf";
+//#include "FADE_PHASE_3.bf";
 //#include "FADE_PHASE_4.bf";
 LoadFunctionLibrary ("GrabBag");
 LoadFunctionLibrary ("ReadDelimitedFiles");
@@ -194,20 +198,21 @@ fprintf (stdout, "[DIAGNOSTIC] FUBAR will run thin each chain down to ", _fubarT
 _fubarPriorShape = prompt_for_a_value ("The concentration parameter of the Dirichlet prior",0.5,0.001,1,0);    
 fprintf (stdout, "[DIAGNOSTIC] FUBAR will use the Dirichlet prior concentration parameter of ", _fubarPriorShape, "\n"); 
 
+fadeGrid = 					defineFadeGrid (num_alpha, num_beta);
 
 for (residue = 0; residue < 20; residue = residue + 1)
 {
 	if(run_residue == residue || run_residue < 0)
 	{
-		CreateBackgroundModelFADE			(modelNameString,"backgroundMatrix");	
+		//CreateBackgroundModelFADE			(modelNameString,"backgroundMatrix");	
 		AddABiasFADE					(modelNameString,"biasedMatrix",residue);	
-		depsGrid = 						defineFadeGrid (20, 20);
+
 		index = 0;
-		for(_x = 0 ; _x < 20 ; _x += 1)
+		for(_x = 0 ; _x < num_alpha ; _x += 1)
 		{
-			for(_y = 0 ; _y < 20 ; _y += 1)
+			for(_y = 0 ; _y < num_beta ; _y += 1)
 			{
-				fprintf(stdout,_x,",",_y,"\t",depsGrid[index][0],"\t",depsGrid[index][1],"\n");
+				//fprintf(stdout,_x,",",_y,"\t",fadeGrid[index][0],"\t",fadeGrid[index][1],"\n");
 				index += 1;
 			}
 		}
@@ -231,6 +236,7 @@ for (residue = 0; residue < 20; residue = residue + 1)
 
 
 		fprintf(stdout,"something2","\n");
+		Optimize(MLESlfb, lfb);
 
 		ClearConstraints(alpha);
 		ClearConstraints(beta);
@@ -238,14 +244,16 @@ for (residue = 0; residue < 20; residue = residue + 1)
 		gridInfoFile = LAST_FILE_PATH +"."+AAString[residue]+".grid_info";
  
 		fprintf(stdout,gridInfoFile,"\n");
-		gridInfo = computeLFOnGrid("lfb", depsGrid, 1);
-		fprintf (gridInfoFile,CLEAR_FILE, depsGrid, "\n", gridInfo);
+		gridInfo = computeLFOnGrid("lfb", fadeGrid, 1);
+		fprintf (gridInfoFile,CLEAR_FILE, fadeGrid, "\n", gridInfo);
 		
 
 	       _fubarMCMCSamplesLocation =  LAST_FILE_PATH +"."+AAString[residue]+".samples";
 	       _fubarGridInfoLocation = gridInfoFile;   
+	
 	       runPhase3(_fubarMCMCSamplesLocation, _fubarGridInfoLocation, _fubarChainCount, _fubarChainLength, _fubarChainBurnin,_fubarTotalSamples, _fubarPriorShape);
-		//callPhase4();
+	       //callPhase4();
+	   //   runPhase4(LAST_FILE_PATH, gridInfoFile, _fubarMCMCSamplesLocation, _fubarChainCount);
 
 		//fprintf							(stdout, "Test ", "Bias term           = ", Format(rateBiasTo,8,5), "\n\tproportion          = ", Format(P_bias,8,5),"\n");
 		//DoResults 						(residue);
@@ -550,23 +558,18 @@ function DoResults (residueIn)
 	return 0;
 }
 
-function callPhase4()
+function runPhase3(_fubarMCMCSamplesLocation, _fubarGridInfoLocation, _fubarChainCount, _fubarChainLength, _fubarChainBurnin,_fubarTotalSamples, _fubarPriorShape)
 {
-  fprintf(stdout, "callPhase4", "\n")
+  ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3.bf"}}), {"0": "" +  _fubarMCMCSamplesLocation, "1" : "" +_fubarGridInfoLocation, "2": "" + _fubarChainCount, "3": "" +  _fubarChainLength, "4": "" + _fubarChainBurnin, "5": "" + _fubarTotalSamples, "6": "" + _fubarPriorShape});
+  return 0;
+}
+
+
+function runPhase4(nuc_fit_file, grid_file, sample_base_file, _chainCount) 
+{
+  results_file = LAST_FILE_PATH+"." + AAString[residue] + ".fade.csv";
  
-  
- nuc_fit_file = LAST_FILE_PATH + ".base";
- grid_file = LAST_FILE_PATH + "." + AAString[residue] + ".grid_info";
- sample_base_file = LAST_FILE_PATH + AAString[residue] + ".samples";
- results_file = LAST_FILE_PATH + AAString[residue] + ".fade.csv";
-//fscanf              (stdin, "String", grid_file);
-//fscanf              (stdin, "String", sample_base_file);
-//fscanf              (stdin, "Number", _chainCount);
-//fscanf              (stdin, "String", results_file);
-  
-
-  
   ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4.bf"}}), {"0": "" + nuc_fit_file, "1" : "" + grid_file, "2": "" + sample_base_file, "3": "" +  _chainCount, "4": "" + results_file});
-
+  return 0;
 }
 
