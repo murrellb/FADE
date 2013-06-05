@@ -235,9 +235,6 @@ for (residue = 0; residue < 20; residue = residue + 1)
 		beta:=1; // need to constrain bias before optimization
 
 
-		fprintf(stdout,"something2","\n");
-		Optimize(MLESlfb, lfb);
-
 		ClearConstraints(alpha);
 		ClearConstraints(beta);
 		
@@ -251,17 +248,19 @@ for (residue = 0; residue < 20; residue = residue + 1)
 	       _fubarMCMCSamplesLocation =  LAST_FILE_PATH +"."+AAString[residue]+".samples";
 	       _fubarGridInfoLocation = gridInfoFile;   
 	
+		// run MCMC chains for this amino acid
 	       runPhase3(_fubarMCMCSamplesLocation, _fubarGridInfoLocation, _fubarChainCount, _fubarChainLength, _fubarChainBurnin,_fubarTotalSamples, _fubarPriorShape);
-	       //callPhase4();
-	   //   runPhase4(LAST_FILE_PATH, gridInfoFile, _fubarMCMCSamplesLocation, _fubarChainCount);
+	       
+		// process results of MCMC chains
+	   	runPhase4(LAST_FILE_PATH, gridInfoFile, _fubarMCMCSamplesLocation, _fubarChainCount);
 
-		//fprintf							(stdout, "Test ", "Bias term           = ", Format(rateBiasTo,8,5), "\n\tproportion          = ", Format(P_bias,8,5),"\n");
-		//DoResults 						(residue);
+		//fprintf	(stdout, "Test ", "Bias term           = ", Format(rateBiasTo,8,5), "\n\tproportion          = ", Format(P_bias,8,5),"\n");
+		//DoResults 	(residue);
 	}
 }
 
 
-
+/*
 fprintf							(substitutionsPath, CLEAR_FILE, KEEP_OPEN, "Site,From,To,Count");
 fprintf							(siteReportMap,     CLEAR_FILE, KEEP_OPEN, "Site");
 for (k=0; k<20; k=k+1)
@@ -325,6 +324,7 @@ for (k=0; k<20; k=k+1)
 		}
 	}
 }
+
 
 fprintf (stdout, 	  "\n");
 fprintf (summaryPath, "\n");
@@ -435,7 +435,7 @@ fprintf (summaryPath, 		CLOSE_FILE);
 fprintf (siteReportMap, 	CLOSE_FILE);
 fprintf (stdout, "\n");
 
-
+*/
 /*--------------------------------------------------------------------------------------------*/
 /* 
 	Compute the difference vector between the stationary distribution at the root (efv) and the expected

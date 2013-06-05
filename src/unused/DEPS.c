@@ -5,7 +5,7 @@ AAString    = "ACDEFGHIKLMNPQRSTVWY";
              //01234567890123456789
 
 //run_residue = 16; // run only this residue, -1 => run all residues
-run_residue = -1; // run only this residue, -1 => run all residues
+run_residue = 2; // run only this residue, -1 => run all residues
 
 if(run_residue < 0)
 {

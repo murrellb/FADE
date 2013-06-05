@@ -9,12 +9,6 @@ fscanf              (stdin, "String", results_file);
 // _chainCount=2;
 // results_file="/home/arjun/FADE/datasets/H3N2_HA/output.csv";
 
-fprintf(stdout, nuc_fit_file, "\n");
-fprintf(stdout, grid_file, "\n");
-fprintf(stdout, sample_base_file, "\n");
-fprintf(stdout, _chainCount, "\n");
-fprintf(stdout, results_file, "\n");
-
 
 _fubar_do_simulations = 0;
 
@@ -27,6 +21,7 @@ ExecuteAFile        (PATH_TO_CURRENT_BF + "FUBAR_tools.ibf");
 LoadFunctionLibrary ("GrabBag");
 LoadFunctionLibrary ("WriteDelimitedFiles");
 
+/*
 ExecuteAFile        (nuc_fit_file);
 sequences = nucData_1.species;
 GetInformation (treeCount,"^nuc_tree_[0-9]+$");
@@ -38,7 +33,7 @@ for (fileID = 1; fileID <= fileCount; fileID += 1)
 {
 	treeLengths [fileID-1] = + Eval("BranchLength(nuc_tree_"+fileID+",-1)");
 }
-
+*/
 fscanf (grid_file, REWIND, "NMatrix,Raw", grid, site_probs);
 site_probs = Eval (site_probs);
 sites   = Columns (site_probs["conditionals"]);
