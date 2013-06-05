@@ -10,6 +10,8 @@ AAString    = "ACDEFGHIKLMNPQRSTVWY";
 run_residue = -1;
 num_alpha = 10;
 num_beta = 10;
+_cachingOK = 1;
+
 
 if(run_residue < 0)
 {
@@ -239,20 +241,36 @@ for (residue = 0; residue < 20; residue = residue + 1)
 		ClearConstraints(beta);
 		
 		gridInfoFile = LAST_FILE_PATH +"."+AAString[residue]+".grid_info";
- 
-		fprintf(stdout,gridInfoFile,"\n");
-		gridInfo = computeLFOnGrid("lfb", fadeGrid, 1);
-		fprintf (gridInfoFile,CLEAR_FILE, fadeGrid, "\n", gridInfo);
+
+		if(_cachingOK && !gridInfoFile)
+		{  
+			 fprintf (stdout, "[CACHED] grid info file found for residue:",AAString[residue], "\n"); 
+		}
+		else
+		{
+			gridInfo = computeLFOnGrid("lfb", fadeGrid, 1); // phase 2
+			fprintf (gridInfoFile,CLEAR_FILE, fadeGrid, "\n", gridInfo);
+		}
 		
 
 	       _fubarMCMCSamplesLocation =  LAST_FILE_PATH +"."+AAString[residue]+".samples";
-	       _fubarGridInfoLocation = gridInfoFile;   
+	       //_fubarGridInfoLocation = gridInfoFile;   
 	
-		// run MCMC chains for this amino acid
-	       runPhase3(_fubarMCMCSamplesLocation, _fubarGridInfoLocation, _fubarChainCount, _fubarChainLength, _fubarChainBurnin,_fubarTotalSamples, _fubarPriorShape);
-	       
-		// process results of MCMC chains
-	   	runPhase4(LAST_FILE_PATH, gridInfoFile, _fubarMCMCSamplesLocation, _fubarChainCount);
+		_lastSampleFile = _fubarMCMCSamplesLocation+"."+(_fubarChainCount-1);
+		_resultsFile = LAST_FILE_PATH+"." + AAString[residue] + ".fade.csv";
+		if(_cachingOK && !_lastSampleFile  && !_resultsFile)
+		{
+			fprintf (stdout, "[CACHED] MCMC chains founds for residue:",AAString[residue], "\n"); 
+			
+		}		
+		else
+		{
+			// run MCMC chains for this amino acid
+		       runPhase3(_fubarMCMCSamplesLocation, gridInfoFile, _fubarChainCount, _fubarChainLength, _fubarChainBurnin,_fubarTotalSamples, _fubarPriorShape);
+       
+			// process results of MCMC chains		
+		   	runPhase4(LAST_FILE_PATH, gridInfoFile, _fubarMCMCSamplesLocation, _fubarChainCount, _resultsFile);
+		}
 
 		//fprintf	(stdout, "Test ", "Bias term           = ", Format(rateBiasTo,8,5), "\n\tproportion          = ", Format(P_bias,8,5),"\n");
 		//DoResults 	(residue);
@@ -565,10 +583,8 @@ function runPhase3(_fubarMCMCSamplesLocation, _fubarGridInfoLocation, _fubarChai
 }
 
 
-function runPhase4(nuc_fit_file, grid_file, sample_base_file, _chainCount) 
-{
-  results_file = LAST_FILE_PATH+"." + AAString[residue] + ".fade.csv";
- 
+function runPhase4(nuc_fit_file, grid_file, sample_base_file, _chainCount, results_file) 
+{ 
   ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4.bf"}}), {"0": "" + nuc_fit_file, "1" : "" + grid_file, "2": "" + sample_base_file, "3": "" +  _chainCount, "4": "" + results_file});
   return 0;
 }
