@@ -22,6 +22,7 @@ SKIP_MODEL_PARAMETER_LIST = 0;
 #include "GrabBag.c";
 #include "FUBAR_tools.ibf";
 #include "FADE_PHASE_3.bf";
+#include "FADE_PHASE_4.bf";
 LoadFunctionLibrary ("GrabBag");
 LoadFunctionLibrary ("ReadDelimitedFiles");
 
@@ -549,4 +550,23 @@ function DoResults (residueIn)
 	return 0;
 }
 
+function callPhase4()
+{
+  fprintf(stdout, "callPhase4", "\n")
+ 
+  
+ nuc_fit_file = LAST_FILE_PATH + ".base";
+ grid_file = LAST_FILE_PATH + "." + AAString[residue] + ".grid_info";
+ sample_base_file = LAST_FILE_PATH + AAString[residue] + ".samples";
+ results_file = LAST_FILE_PATH + AAString[residue] + ".fade.csv";
+//fscanf              (stdin, "String", grid_file);
+//fscanf              (stdin, "String", sample_base_file);
+//fscanf              (stdin, "Number", _chainCount);
+//fscanf              (stdin, "String", results_file);
+  
+
+  
+  ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4.bf"}}), {"0": "" + nuc_fit_file, "1" : "" + grid_file, "2": "" + sample_base_file, "3": "" +  _chainCount, "4": "" + results_file});
+
+}
 
