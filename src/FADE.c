@@ -22,7 +22,7 @@ SKIP_MODEL_PARAMETER_LIST = 0;
 #include "GrabBag.c";
 #include "FUBAR_tools.ibf";
 #include "FADE_PHASE_3.bf";
-#include "FADE_PHASE_4.bf";
+//#include "FADE_PHASE_4.bf";
 LoadFunctionLibrary ("GrabBag");
 LoadFunctionLibrary ("ReadDelimitedFiles");
 
@@ -245,7 +245,7 @@ for (residue = 0; residue < 20; residue = residue + 1)
 	       _fubarMCMCSamplesLocation =  LAST_FILE_PATH +"."+AAString[residue]+".samples";
 	       _fubarGridInfoLocation = gridInfoFile;   
 	       runPhase3(_fubarMCMCSamplesLocation, _fubarGridInfoLocation, _fubarChainCount, _fubarChainLength, _fubarChainBurnin,_fubarTotalSamples, _fubarPriorShape);
-
+		//callPhase4();
 
 		//fprintf							(stdout, "Test ", "Bias term           = ", Format(rateBiasTo,8,5), "\n\tproportion          = ", Format(P_bias,8,5),"\n");
 		//DoResults 						(residue);
