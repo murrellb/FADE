@@ -233,8 +233,8 @@ for (residue = 0; residue < 20; residue = residue + 1)
 		LikelihoodFunction lfb 		= 	(filteredData, biasedTree);
 
 		//Optimize 						(lfb_MLES,lfb);
-		alpha:=1; // need to constrain gamma before optimization
-		beta:=1; // need to constrain bias before optimization
+		alpha:=1; // need to constrain alpha (rate-to-rate variation) before optimization
+		beta:=1; // need to constrain beta (bias) before optimization
 
 
 		ClearConstraints(alpha);
@@ -244,7 +244,7 @@ for (residue = 0; residue < 20; residue = residue + 1)
 
 		if(_cachingOK && !gridInfoFile)
 		{  
-			 fprintf (stdout, "[CACHED] grid info file found for residue:",AAString[residue], "\n"); 
+			 fprintf (stdout, "[CACHED] Grid info file found for residue: ",AAString[residue], "\n"); 
 		}
 		else
 		{
@@ -260,7 +260,7 @@ for (residue = 0; residue < 20; residue = residue + 1)
 		_resultsFile = LAST_FILE_PATH+"." + AAString[residue] + ".fade.csv";
 		if(_cachingOK && !_lastSampleFile  && !_resultsFile)
 		{
-			fprintf (stdout, "[CACHED] MCMC chains founds for residue:",AAString[residue], "\n"); 
+			fprintf (stdout, "[CACHED] MCMC chains founds for residue: ",AAString[residue], "\n"); 
 			
 		}		
 		else
@@ -268,8 +268,8 @@ for (residue = 0; residue < 20; residue = residue + 1)
 			// run MCMC chains for this amino acid
 		       runPhase3(_fubarMCMCSamplesLocation, gridInfoFile, _fubarChainCount, _fubarChainLength, _fubarChainBurnin,_fubarTotalSamples, _fubarPriorShape);
        
-			// process results of MCMC chains		
-		   	runPhase4(LAST_FILE_PATH, gridInfoFile, _fubarMCMCSamplesLocation, _fubarChainCount, _resultsFile);
+		       // process results of MCMC chains		
+		       runPhase4(LAST_FILE_PATH, gridInfoFile, _fubarMCMCSamplesLocation, _fubarChainCount, _resultsFile);
 		}
 
 		//fprintf	(stdout, "Test ", "Bias term           = ", Format(rateBiasTo,8,5), "\n\tproportion          = ", Format(P_bias,8,5),"\n");
