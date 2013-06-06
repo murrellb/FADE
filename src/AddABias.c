@@ -1,25 +1,5 @@
 pThresh = 0.001;
 
-function CreateBackgroundMatrixFADE (ModelMatrixName&, ModelMatrixName2&)
-{
-	ModelMatrixName2 = {20,20};
-	
-	t = 1;	/* branch length, local parameter */
-	_numericRateMatrix = ModelMatrixName;
-
-	for (ri = 0; ri < 20; ri = ri+1)
-	{
-		for (ci = ri+1; ci < 20; ci = ci+1)
-		{
-			ModelMatrixName2[ri][ci] := _numericRateMatrix__[ri__][ci__] * t;
-			ModelMatrixName2[ci][ri] := _numericRateMatrix__[ri__][ci__] * t;
-			fprintf(stdout,ModelMatrixName2[ri][ci],"\n");
-		}
-	}
-	return 1;
-}
-
-
 function AddABiasFADE (ModelMatrixName&, ModelMatrixName2&, biasedBase)
 {
 	ModelMatrixName2 = {20,20};
@@ -29,18 +9,13 @@ function AddABiasFADE (ModelMatrixName&, ModelMatrixName2&, biasedBase)
 
 	global alpha = 1;
 	global beta = 1;
-
-	fprintf(stdout,"AAA:",ModelMatrixName,"\n");
 	
 	for (ri = 0; ri < 20; ri = ri+1)
 	{
 		for (ci = ri+1; ci < 20; ci = ci+1)
 		{
-			fprintf(stdout,_numericRateMatrix__[ri__][ci__],"\n");
 			ModelMatrixName2[ri][ci] := _numericRateMatrix__[ri__][ci__] * t * alpha;
-			ModelMatrixName2[ci][ri] := _numericRateMatrix__[ri__][ci__] * t * alpha;
-			fprintf(stdout,_numericRateMatrix__[ri__][ci__],"\n");
-		
+			ModelMatrixName2[ci][ri] := _numericRateMatrix__[ri__][ci__] * t * alpha;		
 		}
 	}
 	
@@ -74,7 +49,6 @@ function AddABiasFADE2 (ModelMatrixName, ModelMatrixName2&, biasedBase)
 	global alpha = 1;
 	global beta = 1;
 
-	fprintf(stdout,"AAA:",ModelMatrixName,"\n");
 	
 	for (ri = 0; ri < 20; ri = ri+1)
 	{
@@ -198,6 +172,17 @@ function defineFadeGrid (alphaPoints, biasPoints) { // alpha = site-to-site rate
 			else
 			{
 				alphaAndBiasGrid[index][1] = 1+(maxBiasStep*(j - bias_points_less_than_one))^3;
+
+				//make 50% of betas = 1 (so prior is not so unfair)				
+				/*if(j < 10)
+				{
+					alphaAndBiasGrid[index][1] = 1;
+				}
+				else
+				{
+					alphaAndBiasGrid[index][1] = 1+((j-10)/50) + (((j-10)^3)/14.87);
+				}*/
+				
 			}
 			
 			index +=1;

@@ -27,6 +27,7 @@ SKIP_MODEL_PARAMETER_LIST = 0;
 #include "AddABias.c";
 #include "GrabBag.c";
 #include "FUBAR_tools.ibf";
+#include "CodonToProtein.bf";
 //#include "FADE_PHASE_3.bf";
 //#include "FADE_PHASE_4.bf";
 LoadFunctionLibrary ("GrabBag");
@@ -47,32 +48,34 @@ if (reloadFlag == 0)
 	DataSet			ds 			 = ReadDataFile (PROMPT_FOR_FILE);
 	basePath 					 = LAST_FILE_PATH;
 	DataSetFilter   filteredData = CreateFilter (ds,1);
-	
 	GetDataInfo		(checkCharacters, filteredData, "CHARACTERS");
-	if (Columns (checkCharacters) != 20)
+	if (Columns (checkCharacters) != 20) // check if amino acid
 	{
-		fprintf (stdout, "ERROR: please ensure that the input alignment contains protein sequences");
-		return 0;
+		if(Columns (checkCharacters) < 10) // convert if codon
+		{
+			fprintf(stdout, "Codon data needs to be translated to amino acid data.");
+			translatedDataset  = translateCodonToAminoAcid(LAST_FILE_PATH, 1);
+			DataSetFilter filteredData = CreateFilter (bigDataSet,1);
+		}
+		else
+		{			
+			fprintf (stdout, "ERROR: please ensure that the input alignment contains codon or protein sequences");
+			return 0;
+		}
 	}
 	
-	/* from AddABias.ibf; select from one of several AA rate matrices estimated from
-		curated alignments (e.g., HIV within); by default, set rate variation to
-		adaptive 4-bin beta-gamma -- argument 0 skips dialog to set [pickATarget] */
 	
-	promptModel (0);
+	promptModel (0); // prompts user for AA model - no rate variation
 
-	fprintf(stdout,"Welcome\n",modelNameString,"\n");
 	AddABiasFADE					(modelNameString,"backgroundMatrix",21); // don't add a bias
 	Model						FG = (backgroundMatrix, vectorOfFrequencies, 1); 
-	Model						BG = (backgroundMatrix, vectorOfFrequencies, 1); 
-	fprintf(stdout,"Goodbye","\n");
+	Model						BG = (backgroundMatrix, vectorOfFrequencies, 1);
 	
 	
 	// prompts the user for a tree, returns givenTree
 	ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "queryTree.bf");
 	ChoiceList						(fixFB, "Fix Branch", 1, SKIP_NONE, "Unknown root","The character at the root of the tree is drawn from the stationary distribution",
 																		"Fix 1st sequence as root","The 1st sequence in the file (assumed to be a direct descendant of the root) is used to populate the root sequences.");
-	
 	
 	/* check if the tree is rooted */
 	
@@ -171,6 +174,8 @@ else
 	LFCompute (lf,LF_DONE_COMPUTE);
 }
 
+treeContainsTags = (treeString||"{FG}")[0][0] != -1;
+
 /* when the heck does biasedTree get called?  It's tucked inside runAFit() in AddABias.ibf... */
 root_left  = "biasedTree." + (treeAVL[(rootNode["Children"])[0]])["Name"] + ".t";
 root_right = "biasedTree." + (treeAVL[(rootNode["Children"])[1]])["Name"] + ".t";
@@ -232,7 +237,10 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 
 
 		Model				FG = (biasedMatrix, vectorOfFrequencies, 1); // vectorOfFrequencies comes from Custom_AA_empirical.mdl, in turn imported from a file such as "HIVWithin" rate matrix is multiplied by this vector (third argument)				
-		Model 				BG =  (biasedMatrix, vectorOfFrequencies, 1); // need to change this to baseline matrix
+		if(treeContainsTags) // only run the background model if the tree contains tags
+		{
+			Model 			BG =  (backgroundMatrix2, vectorOfFrequencies, 1); // need to change this to baseline matrix
+		}
 
 		Tree				biasedTree = treeString;
 		global				treeScaler = 1;
@@ -242,15 +250,6 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 		ExecuteCommands					(root_left + "=" + root_left);
 		ExecuteCommands					(root_right + "=" + root_right);
 		LikelihoodFunction lfb 		= 	(filteredData, biasedTree);
-
-		/*
-		Optimize 						(lfb_MLES,lfb);
-		alpha:=1; // need to constrain alpha (rate-to-rate variation) before optimization
-		beta:=1; // need to constrain beta (bias) before optimization
-
-
-		ClearConstraints(alpha);
-		ClearConstraints(beta);*/
 		
 		gridInfoFile = LAST_FILE_PATH +"."+AAString[residue]+".grid_info";
 
@@ -263,7 +262,6 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 			gridInfo = computeLFOnGrid("lfb", fadeGrid, 1); // phase 2
 			points = Rows (gridInfo["conditionals"]);
 			sites = Columns (gridInfo["conditionals"]);
-			fprintf(stdout,"GAH",points,"\t",sites,"\n");
 			col = 152;
 			
 			conditionalsGrid = gridInfo["conditionals"];
@@ -276,7 +274,7 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 				for(_y = 0 ; _y < num_beta ; _y += 1)
 				{
 					fprintf(gridFileName,conditionalsGrid[sites*index+col]);
-					//fprintf(gridFileName,conditionalsGrid[points*index+col]);
+					//printf(gridFileName,conditionalsGrid[points*index+col]);
 					if(_y < num_beta - 1)
 					{
 						fprintf(gridFileName,",");

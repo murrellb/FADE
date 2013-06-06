@@ -48,7 +48,7 @@ function tabulateGridResults (points, sites, samples, _chainCount) {
     beta_matrices         = {};
     normalization_factors = {};
     
-    fprintf("negstencil", negative_selection_stencil[-1][1]);
+    //fprintf("negstencil", negative_selection_stencil[-1][1]);
     
     from = 0;
     to   = perChain;
@@ -57,7 +57,6 @@ function tabulateGridResults (points, sites, samples, _chainCount) {
     for (_chainID = 0; _chainID < _chainCount; _chainID += 1) {
         SetParameter (STATUS_BAR_STATUS_STRING, "Processing samples from chain "+ _chainID + "/" + _chainCount + " " + _formatTimeString(Time(1)-t0),0);
         thisSample = samplesAVL[_chainID];
-        //fprintf(wtf, CLEAR_FILE, site_probs["conditionals"]);
         thisLogL   = logLAVL[_chainID];
         norm_matrix           = (thisSample*site_probs["conditionals"]);
         normalization_factors + norm_matrix;

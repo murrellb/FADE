@@ -3,25 +3,14 @@ fscanf              (stdin, "String", grid_file);
 fscanf              (stdin, "String", sample_base_file);
 fscanf              (stdin, "Number", _chainCount);
 fscanf              (stdin, "String", results_file);
-// nuc_fit_file = "/home/arjun/FADE/datasets/H3N2_HA/H3N2_HA.fas.base";
-// grid_file = "/home/arjun/FADE/datasets/H3N2_HA/H3N2_HA.fas.base.C.grid_info";
-// sample_base_file = "/home/arjun/FADE/datasets/H3N2_HA/H3N2_HA.fas.base.C.samples";
-// _chainCount=2;
-// results_file="/home/arjun/FADE/datasets/H3N2_HA/output.csv";
-
 
 _fubar_do_simulations = 0;
-
-// for PHASE 5
-//fscanf (stdin, "String", sim_fit_file);
-//fscanf (stdin, "String", sim_grid_info);
-//fscanf (stdin, "String", codon_fit_file);
 
 ExecuteAFile        (PATH_TO_CURRENT_BF + "FUBAR_tools.ibf");
 LoadFunctionLibrary ("GrabBag");
 LoadFunctionLibrary ("WriteDelimitedFiles");
 
-/*
+/* This causes grid info files to be overwritten??
 ExecuteAFile        (nuc_fit_file);
 sequences = nucData_1.species;
 GetInformation (treeCount,"^nuc_tree_[0-9]+$");
@@ -42,18 +31,18 @@ sites   = Columns (site_probs["conditionals"]);
 readMCMCSamples (sample_base_file,_chainCount);
 
 
-notPositiveSelection = {points,1} ["grid[_MATRIX_ELEMENT_ROW_][1]==1"];
-nonPositiveCount     = +notPositiveSelection;
+pointsWithNoBias = {points,1} ["grid[_MATRIX_ELEMENT_ROW_][1]==1"];
+pointsWithNoBiasCount     = +pointsWithNoBias;
 
 priorMean            = {1, points};
-sampleFromThisDistro = {nonPositiveCount,2};
+sampleFromThisDistro = {pointsWithNoBiasCount,2};
 
 tabulateGridResults (points, sites, samples, _chainCount);
 
 from = 0;
 for (_point = 0; _point < points; _point += 1) {
     priorMean [_point] = (+jointSamples[-1][_point])/samples;
-    if (notPositiveSelection [_point]) {
+    if (pointsWithNoBias [_point]) {
         sampleFromThisDistro [from][0] = _point;
         sampleFromThisDistro [from][1] = priorMean [_point];
         from += 1;
@@ -70,10 +59,6 @@ for (currentFubarIndex = 0; currentFubarIndex < fubarRowCount; currentFubarIndex
     site_counter + (currentFubarIndex+1);
 }
 
-//USE FIRST ONE
-if (1) {
-    WriteSeparatedTable (results_file, {{"Codon","alpha","beta","Prob[beta>1]", "Prob[beta=1]", "BayesFactor","PSRF", "Neff"}}, fubar_results, site_counter, ",");
-} else {
-    WriteSeparatedTable (results_file, {{"Codon","alpha","beta","beta-alpha","Prob[alpha<beta]", "Prob[alpha>beta]", "BayesFactor","PSRF", "Neff"}}, fubar_results, site_counter, ",");
-}
- 
+
+WriteSeparatedTable (results_file, {{"Codon","alpha","bias","Prob[bias>1]", "Prob[bias=1]", "BayesFactor","PSRF", "Neff"}}, fubar_results, site_counter, ",");
+
