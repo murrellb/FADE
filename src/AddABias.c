@@ -104,57 +104,55 @@ function AddABiasREL (ModelMatrixName&, ModelMatrixName2&, biasedBase)
 	return 1;
 }
 
-function defineFadeGrid (gammaPoints, biasPoints) { // gamma = site-to-site rate variation
-	
-	fprintf(stdout,"defineFadeGrid","\n");
-	
-	fraction_gamma_points_less_than_one = 0.5;
+function defineFadeGrid (alphaPoints, biasPoints) { // alpha = site-to-site rate variation
+
+	fraction_alpha_points_less_than_one = 0.5;
 	fraction_bias_points_less_than_one = 0;
 	
-	minGammaValue = 0.1;
-	maxGammaValue = 50;
+	minAlphaValue = 0.1;
+	maxAlphaValue = 50;
 	maxBiasValue = 50;
 	
-	gammaAndBiasGrid = {gammaPoints * biasPoints,2}; 
+	alphaAndBiasGrid = {alphaPoints * biasPoints,2}; 
 	
-	gammaPoints = Max(gammaPoints, 10);
+	alphaPoints = Max(alphaPoints, 10);
 	biasPoints = Max(biasPoints, 10);
 	
-	gamma_points_less_than_one = gammaPoints * fraction_gamma_points_less_than_one $ 1;
+	alpha_points_less_than_one = alphaPoints * fraction_alpha_points_less_than_one $ 1;
 	bias_points_less_than_one = biasPoints * fraction_bias_points_less_than_one $ 1;
 	
-	maxGammaStep = (maxGammaValue-1)^(1/3)/(gammaPoints-gamma_points_less_than_one-1);
+	maxGammaStep = (maxAlphaValue-1)^(1/3)/(alphaPoints-alpha_points_less_than_one-1);
 	maxBiasStep = (maxBiasValue-1)^(1/3)/(biasPoints-bias_points_less_than_one-1);
 	
 	index = 0;
-	for(i = 0 ; i < gammaPoints ; i += 1)
+	for(i = 0 ; i < alphaPoints ; i += 1)
 	{
 		for(j = 0 ; j < biasPoints ; j += 1)
 		{
-			if(i <= gamma_points_less_than_one)
+			if(i <= alpha_points_less_than_one)
 			{
-				gammaAndBiasGrid[index][0] = minGammaValue + (1-minGammaValue)*(i / gamma_points_less_than_one);
-				if(gamma_points_less_than_one == 0)
+				alphaAndBiasGrid[index][0] = minAlphaValue + (1-minAlphaValue)*(i / alpha_points_less_than_one);
+				if(alpha_points_less_than_one == 0)
 				{
-					gammaAndBiasGrid[index][0] = 1;
+					alphaAndBiasGrid[index][0] = 1;
 				}
 			}
 			else
 			{
-				gammaAndBiasGrid[index][0] = 1+(maxGammaStep*(i - gamma_points_less_than_one))^3;
+				alphaAndBiasGrid[index][0] = 1+(maxGammaStep*(i - alpha_points_less_than_one))^3;
 			}
 			
 			if(j <= bias_points_less_than_one)
 			{
-				gammaAndBiasGrid[index][1]  = j / bias_points_less_than_one;
+				alphaAndBiasGrid[index][1]  = j / bias_points_less_than_one;
 				if(bias_points_less_than_one == 0)
 				{
-					gammaAndBiasGrid[index][1] = 1;
+					alphaAndBiasGrid[index][1] = 1;
 				}
 			}
 			else
 			{
-				gammaAndBiasGrid[index][1] = 1+(maxBiasStep*(j - bias_points_less_than_one))^3;
+				alphaAndBiasGrid[index][1] = 1+(maxBiasStep*(j - bias_points_less_than_one))^3;
 			}
 			
 			index +=1;
@@ -163,49 +161,16 @@ function defineFadeGrid (gammaPoints, biasPoints) { // gamma = site-to-site rate
 
 
 	index = 0;
-	for(i = 0 ; i < gammaPoints ; i += 1)
+	for(i = 0 ; i < alphaPoints ; i += 1)
 	{
 		for(j = 0 ; j < biasPoints ; j += 1)
 		{
-			//gammaAndBiasGrid[index][0] = 1;
-			//gammaAndBiasGrid[index][1] = 1;
+			//alphaAndBiasGrid[index][0] = 1;
+			//alphaAndBiasGrid[index][1] = 1;
 			index +=1;
 		}
 	}
-
-	/*
-    alphaBetaGrid = {one_d_points^2,2}; // (alpha, beta) pair
-    oneDGrid      = {one_d_points,1};
-   
-    one_d_points    = Max (one_d_points, 10);
-    neg_sel         = 0.7;
-    neg_sel_points  = ((one_d_points)*neg_sel+0.5)$1;
-    pos_sel_points  = (one_d_points-1)*(1-neg_sel)$1;
-    if (neg_sel_points + pos_sel_points != one_d_points) {
-        pos_sel_points = one_d_points - neg_sel_points; 
-    }
-    _neg_step = 1/neg_sel_points;
-    for (_k = 0; _k < neg_sel_points; _k += 1) {
-        oneDGrid [_k][0] =  _neg_step * _k;
-    }
-    oneDGrid [neg_sel_points-1][0] = 1;
-    _pos_step = 49^(1/3)/pos_sel_points;
-    for (_k = 1; _k <= pos_sel_points; _k += 1) {
-        oneDGrid [neg_sel_points+_k-1][0] = 1+(_pos_step*_k)^3;
-    }
-    
-    _p = 0;
-    for (_r = 0; _r < one_d_points; _r += 1) {
-        for (_c = 0; _c < one_d_points; _c += 1) {
-           alphaBetaGrid[_p][0] = oneDGrid[_r];
-           alphaBetaGrid[_p][1] = oneDGrid[_c];
-           _p += 1;
-        }
-    }*/
-	
-	fprintf(stdout,"END","\n");
-    
-    return gammaAndBiasGrid;   
+    return alphaAndBiasGrid;   
 }
 
 
@@ -263,7 +228,7 @@ function promptModel (dummy)
 							 								      "HIV Between","HIV Between",
 							 								      "JTT","JTT",
 							 								      "Flu H5N1", "Empirical model for H5N1 Influenza",
-																  "LG", "Le-Gasquel 2008",
+															      "LG", "Le-Gasquel 2008",
 							 								      "REV", "Use general time-reversible model (WARNING: 189 rate parameters will be estimated from your alignment)");
 							 								     
 							 								    

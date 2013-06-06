@@ -62,6 +62,7 @@ if (reloadFlag == 0)
 	promptModel (0);
 	
 	
+	// prompts the user for a tree, returns givenTree
 	ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "queryTree.bf");
 	ChoiceList						(fixFB, "Fix Branch", 1, SKIP_NONE, "Unknown root","The character at the root of the tree is drawn from the stationary distribution",
 																		"Fix 1st sequence as root","The 1st sequence in the file (assumed to be a direct descendant of the root) is used to populate the root sequences.");
@@ -171,9 +172,9 @@ baselineBL						= BranchLength (givenTree,-1);
 
 referenceL						= (baselineBL * (Transpose(baselineBL)["1"]))[0];
 
-summaryPath					   = basePath+".summary";
-substitutionsPath			   = basePath+"_subs.csv";
-siteReportMap				   = basePath+"_bysite.csv";
+summaryPath		             			= basePath+".summary";
+substitutionsPath					= basePath+"_subs.csv";
+siteReportMap				   		= basePath+"_bysite.csv";
 fprintf 						(summaryPath, CLEAR_FILE, KEEP_OPEN);
 fprintf							(stdout,      "[PHASE 0.2] Standard model fit. Log-L = ",baselineLogL,". Tree length = ",referenceL, " subs/site \n"); 
 fprintf							(summaryPath, "[PHASE 0.2] Standard model fit. Log-L = ",baselineLogL,". Tree length = ",referenceL, " subs/site \n"); 
@@ -200,9 +201,10 @@ fprintf (stdout, "[DIAGNOSTIC] FUBAR will run thin each chain down to ", _fubarT
 _fubarPriorShape = prompt_for_a_value ("The concentration parameter of the Dirichlet prior",0.5,0.001,1,0);    
 fprintf (stdout, "[DIAGNOSTIC] FUBAR will use the Dirichlet prior concentration parameter of ", _fubarPriorShape, "\n"); 
 
+
 fadeGrid = 					defineFadeGrid (num_alpha, num_beta);
 
-for (residue = 0; residue < 20; residue = residue + 1)
+for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror each amino acid
 {
 	if(run_residue == residue || run_residue < 0)
 	{
