@@ -8,8 +8,8 @@ AAString    = "ACDEFGHIKLMNPQRSTVWY";
 //run_residue = 16; // run only this residue, -1 => run all residues
 //run_residue = -1; // run only this residue, -1 => run all residues
 run_residue = -1;
-num_alpha = 10;
-num_beta = 10;
+num_alpha = 20;
+num_beta = 20;
 _cachingOK = 1;
 
 
@@ -62,7 +62,7 @@ if (reloadFlag == 0)
 	promptModel (0);
 
 	fprintf(stdout,"Welcome\n",modelNameString,"\n");
-	AddABiasFADE					(modelNameString,"backgroundMatrix",21);
+	AddABiasFADE					(modelNameString,"backgroundMatrix",21); // don't add a bias
 	Model						FG = (backgroundMatrix, vectorOfFrequencies, 1); 
 	Model						BG = (backgroundMatrix, vectorOfFrequencies, 1); 
 	fprintf(stdout,"Goodbye","\n");
@@ -111,12 +111,13 @@ if (reloadFlag == 0)
 	fprintf							(stdout, "[PHASE 0.1] Standard model fit\n"); 
 	
 	
+	alpha := 1;
 	VERBOSITY_LEVEL				= 1;
 	AUTO_PARALLELIZE_OPTIMIZE	= 1;
 	Optimize 						(res0,lf);
 	AUTO_PARALLELIZE_OPTIMIZE	= 0;
 	VERBOSITY_LEVEL				= -1;
-	
+	ClearConstraints(alpha);
 	
 	/* export baseline model LF */
 	LIKELIHOOD_FUNCTION_OUTPUT = 7;
@@ -216,8 +217,8 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 {
 	if(run_residue == residue || run_residue < 0)
 	{
-		CreateBackgroundMatrixFADE			(modelNameString,"backgroundMatrix");
-		AddABiasFADE					(modelNameString,"biasedMatrix",residue);	
+		AddABiasFADE2					(backgroundMatrix,"backgroundMatrix2",21);
+		AddABiasFADE2					(backgroundMatrix,"biasedMatrix",residue);	
 
 		index = 0;
 		for(_x = 0 ; _x < num_alpha ; _x += 1)
@@ -231,7 +232,7 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 
 
 		Model				FG = (biasedMatrix, vectorOfFrequencies, 1); // vectorOfFrequencies comes from Custom_AA_empirical.mdl, in turn imported from a file such as "HIVWithin" rate matrix is multiplied by this vector (third argument)				
-		Model 				baselineModel =  (backgroundMatrix, vectorOfFrequencies, 1);
+		Model 				BG =  (biasedMatrix, vectorOfFrequencies, 1); // need to change this to baseline matrix
 
 		Tree				biasedTree = treeString;
 		global				treeScaler = 1;
@@ -242,13 +243,14 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 		ExecuteCommands					(root_right + "=" + root_right);
 		LikelihoodFunction lfb 		= 	(filteredData, biasedTree);
 
-		//Optimize 						(lfb_MLES,lfb);
+		/*
+		Optimize 						(lfb_MLES,lfb);
 		alpha:=1; // need to constrain alpha (rate-to-rate variation) before optimization
 		beta:=1; // need to constrain beta (bias) before optimization
 
 
 		ClearConstraints(alpha);
-		ClearConstraints(beta);
+		ClearConstraints(beta);*/
 		
 		gridInfoFile = LAST_FILE_PATH +"."+AAString[residue]+".grid_info";
 
@@ -259,6 +261,31 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 		else
 		{
 			gridInfo = computeLFOnGrid("lfb", fadeGrid, 1); // phase 2
+			points = Rows (gridInfo["conditionals"]);
+			sites = Columns (gridInfo["conditionals"]);
+			fprintf(stdout,"GAH",points,"\t",sites,"\n");
+			col = 152;
+			
+			conditionalsGrid = gridInfo["conditionals"];
+			gridFileName =  LAST_FILE_PATH +"."+AAString[residue]+"."+col+".conditionals_sxic.csv";
+			fprintf(gridFileName,CLEAR_FILE);
+			
+			index = 0;
+			for(_x = 0 ; _x < num_alpha ; _x += 1)
+			{
+				for(_y = 0 ; _y < num_beta ; _y += 1)
+				{
+					fprintf(gridFileName,conditionalsGrid[sites*index+col]);
+					//fprintf(gridFileName,conditionalsGrid[points*index+col]);
+					if(_y < num_beta - 1)
+					{
+						fprintf(gridFileName,",");
+					}
+					//fprintf(stdout,_x,",",_y,"\t",fadeGrid[index][0],"\t",fadeGrid[index][1],"\t",gridInfo["conditionals"][sites*col+index],"\n");
+					index += 1;
+				}
+				fprintf(gridFileName,"\n");
+			}
 			fprintf (gridInfoFile,CLEAR_FILE, fadeGrid, "\n", gridInfo);
 		}
 		

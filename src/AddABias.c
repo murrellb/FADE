@@ -29,15 +29,59 @@ function AddABiasFADE (ModelMatrixName&, ModelMatrixName2&, biasedBase)
 
 	global alpha = 1;
 	global beta = 1;
+
+	fprintf(stdout,"AAA:",ModelMatrixName,"\n");
+	
+	for (ri = 0; ri < 20; ri = ri+1)
+	{
+		for (ci = ri+1; ci < 20; ci = ci+1)
+		{
+			fprintf(stdout,_numericRateMatrix__[ri__][ci__],"\n");
+			ModelMatrixName2[ri][ci] := _numericRateMatrix__[ri__][ci__] * t * alpha;
+			ModelMatrixName2[ci][ri] := _numericRateMatrix__[ri__][ci__] * t * alpha;
+			fprintf(stdout,_numericRateMatrix__[ri__][ci__],"\n");
+		
+		}
+	}
+	
+	if (biasedBase < 20)
+	{
+		global rateBiasTo 	 := beta;
+		global rateBiasFrom	 := 1/rateBiasTo;
+			
+		rateBiasTo    :>1;
+		relBias       :>1;	/* UNUSED ?!? */
+		for (ri = 0; ri < 20; ri = ri+1)
+		{
+			if (ri != biasedBase)
+			{
+				ModelMatrixName2[ri][biasedBase] := _numericRateMatrix__[ri__][biasedBase__] * t * alpha * rateBiasTo;
+				ModelMatrixName2[biasedBase][ri] := _numericRateMatrix__[ri__][biasedBase__] * t * alpha * rateBiasFrom;
+			} 
+		}
+	}
+
+	return 1;
+}
+
+function AddABiasFADE2 (ModelMatrixName, ModelMatrixName2&, biasedBase)
+{
+	ModelMatrixName2 = {20,20};
+	
+	t = 1;	/* branch length, local parameter */
+	_numericRateMatrix = ModelMatrixName;
+
+	global alpha = 1;
+	global beta = 1;
+
+	fprintf(stdout,"AAA:",ModelMatrixName,"\n");
 	
 	for (ri = 0; ri < 20; ri = ri+1)
 	{
 		for (ci = ri+1; ci < 20; ci = ci+1)
 		{
 			ModelMatrixName2[ri][ci] := _numericRateMatrix__[ri__][ci__] * t * alpha;
-			ModelMatrixName2[ci][ri] := _numericRateMatrix__[ri__][ci__] * t * alpha;
-			fprintf(stdout,_numericRateMatrix__[ri__][ci__],"\n");
-		
+			ModelMatrixName2[ci][ri] := _numericRateMatrix__[ri__][ci__] * t * alpha;		
 		}
 	}
 	
