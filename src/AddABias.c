@@ -1,6 +1,6 @@
 pThresh = 0.001;
 
-function CreateBackgroundModelFADE (ModelMatrixName&, ModelMatrixName2&)
+function CreateBackgroundMatrixFADE (ModelMatrixName&, ModelMatrixName2&)
 {
 	ModelMatrixName2 = {20,20};
 	
@@ -13,7 +13,7 @@ function CreateBackgroundModelFADE (ModelMatrixName&, ModelMatrixName2&)
 		{
 			ModelMatrixName2[ri][ci] := _numericRateMatrix__[ri__][ci__] * t;
 			ModelMatrixName2[ci][ri] := _numericRateMatrix__[ri__][ci__] * t;
-		
+			fprintf(stdout,ModelMatrixName2[ri][ci],"\n");
 		}
 	}
 	return 1;
@@ -36,6 +36,7 @@ function AddABiasFADE (ModelMatrixName&, ModelMatrixName2&, biasedBase)
 		{
 			ModelMatrixName2[ri][ci] := _numericRateMatrix__[ri__][ci__] * t * alpha;
 			ModelMatrixName2[ci][ri] := _numericRateMatrix__[ri__][ci__] * t * alpha;
+			fprintf(stdout,_numericRateMatrix__[ri__][ci__],"\n");
 		
 		}
 	}
@@ -238,9 +239,9 @@ function promptModel (dummy)
 	}
 
 	modelSTDINoverload = {};
-	modelSTDINoverload["2"] = "Rate variation";
-	modelSTDINoverload["3"] = "Beta-Gamma";
-	modelSTDINoverload["4"] = "4";
+	modelSTDINoverload["2"] = "Fixed Rates";
+	//modelSTDINoverload["3"] = "Beta-Gamma";
+	//modelSTDINoverload["4"] = "4";
 	modelNameString = "_customAAModelMatrix";
 
 	if (pickAModel == 0)

@@ -60,6 +60,12 @@ if (reloadFlag == 0)
 		adaptive 4-bin beta-gamma -- argument 0 skips dialog to set [pickATarget] */
 	
 	promptModel (0);
+
+	fprintf(stdout,"Welcome\n",modelNameString,"\n");
+	AddABiasFADE					(modelNameString,"backgroundMatrix",21);
+	Model						FG = (backgroundMatrix, vectorOfFrequencies, 1); 
+	Model						BG = (backgroundMatrix, vectorOfFrequencies, 1); 
+	fprintf(stdout,"Goodbye","\n");
 	
 	
 	// prompts the user for a tree, returns givenTree
@@ -98,6 +104,8 @@ if (reloadFlag == 0)
 		of root can be estimated; this measure prevents one of the branches
 		from collapsing to zero length */
 	ExecuteCommands					(root_left + ":=" + root_right); 
+
+
 	
 	LikelihoodFunction lf 		= 	(filteredData, givenTree);
 	fprintf							(stdout, "[PHASE 0.1] Standard model fit\n"); 
@@ -208,7 +216,7 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 {
 	if(run_residue == residue || run_residue < 0)
 	{
-		//CreateBackgroundModelFADE			(modelNameString,"backgroundMatrix");	
+		CreateBackgroundMatrixFADE			(modelNameString,"backgroundMatrix");
 		AddABiasFADE					(modelNameString,"biasedMatrix",residue);	
 
 		index = 0;
@@ -222,9 +230,9 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 		}
 
 
-		
-		//Model 				baselineModel =  (backgroundMatrix, vectorOfFrequencies, 1);
-		Model				FG = (biasedMatrix, vectorOfFrequencies, 1); // vectorOfFrequencies comes from Custom_AA_empirical.mdl, in turn imported from a file such as "HIVWithin" rate matrix is multiplied by this vector (third argument)
+		Model				FG = (biasedMatrix, vectorOfFrequencies, 1); // vectorOfFrequencies comes from Custom_AA_empirical.mdl, in turn imported from a file such as "HIVWithin" rate matrix is multiplied by this vector (third argument)				
+		Model 				baselineModel =  (backgroundMatrix, vectorOfFrequencies, 1);
+
 		Tree				biasedTree = treeString;
 		global				treeScaler = 1;
 
