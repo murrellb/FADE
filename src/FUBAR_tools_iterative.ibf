@@ -37,8 +37,10 @@ function tabulateGridResults (points, sites, samples, _chainCount) {
     jointSamples          = {samples,points};
     perChain              = samples$_chainCount;
 
-    positive_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][0]<grid[_MATRIX_ELEMENT_ROW_][1]"];
-    negative_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][0]>grid[_MATRIX_ELEMENT_ROW_][1]"];
+    positive_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][1]>1"];
+    negative_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][1]==1"];
+    //positive_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][0]<grid[_MATRIX_ELEMENT_ROW_][1]"];
+    //negative_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][0]>grid[_MATRIX_ELEMENT_ROW_][1]"];
     diag_alpha = {points,points}["grid[_MATRIX_ELEMENT_ROW_][0]*(_MATRIX_ELEMENT_ROW_==_MATRIX_ELEMENT_COLUMN_)"];
     diag_beta  = {points,points}["grid[_MATRIX_ELEMENT_ROW_][1]*(_MATRIX_ELEMENT_ROW_==_MATRIX_ELEMENT_COLUMN_)"];
     
@@ -301,18 +303,11 @@ function computeLFOnGrid (lfID, grid, doConditionals) {
                     }
             }
 		}
+
     }
 
     if (doConditionals) {
-		likelihoods = {points, _siteCount};
-		for (_r = 0; _r < points; _r += 1){
-			for (_c = 0; _c < _siteCount; _c += 1) {
-				likelihoods[_r][_c] = conditionals[_r][_c];
-			}
-		}
-	
         for (_c = 0; _c < _siteCount; _c += 1) {
-			// convert log-likelihood to probabilities
             this_site  = conditionals[-1][_c];
             best_log_l = Min (this_site*(-1),0);
             this_site  = (this_site + best_log_l)["Exp(_MATRIX_ELEMENT_VALUE_)"];
@@ -326,7 +321,6 @@ function computeLFOnGrid (lfID, grid, doConditionals) {
         
         result["conditionals"] = conditionals;
         result["scalers"]      = scaler;
-		result["likelihoods"] = likelihoods;
     } else {
         return conditionals;
     }

@@ -32,6 +32,7 @@ readMCMCSamples (sample_base_file,_chainCount);
 
 
 pointsWithNoBias = {points,1} ["grid[_MATRIX_ELEMENT_ROW_][1]==1"];
+//pointsWithNoBias = {points,1} ["grid[_MATRIX_ELEMENT_ROW_][1]>1"];
 pointsWithNoBiasCount     = +pointsWithNoBias;
 
 priorMean            = {1, points};

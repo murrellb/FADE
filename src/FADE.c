@@ -1,9 +1,12 @@
 //callPhase4();
 
+
+
 /* define an associative array with key = amino acid and value = integer
 	index for AA in alphabetical order */
 AAString    = "ACDEFGHIKLMNPQRSTVWY";
              //01234567890123456789
+
 
 //run_residue = 16; // run only this residue, -1 => run all residues
 //run_residue = -1; // run only this residue, -1 => run all residues
@@ -11,7 +14,8 @@ run_residue = -1;
 num_alpha = 20;
 num_beta = 20;
 _cachingOK = 1;
-
+concentration = 0.5;
+runmcmc = 0; // for testing purposes only
 
 if(run_residue < 0)
 {
@@ -28,8 +32,6 @@ SKIP_MODEL_PARAMETER_LIST = 0;
 #include "GrabBag.c";
 #include "FUBAR_tools.ibf";
 #include "CodonToProtein.bf";
-//#include "FADE_PHASE_3.bf";
-//#include "FADE_PHASE_4.bf";
 LoadFunctionLibrary ("GrabBag");
 LoadFunctionLibrary ("ReadDelimitedFiles");
 
@@ -215,7 +217,6 @@ fprintf (stdout, "[DIAGNOSTIC] FUBAR will run thin each chain down to ", _fubarT
 _fubarPriorShape = prompt_for_a_value ("The concentration parameter of the Dirichlet prior",0.5,0.001,1,0);    
 fprintf (stdout, "[DIAGNOSTIC] FUBAR will use the Dirichlet prior concentration parameter of ", _fubarPriorShape, "\n"); 
 
-
 fadeGrid = 					defineFadeGrid (num_alpha, num_beta);
 
 for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror each amino acid
@@ -265,9 +266,10 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 			col = 152;
 			
 			conditionalsGrid = gridInfo["conditionals"];
-			gridFileName =  LAST_FILE_PATH +"."+AAString[residue]+"."+col+".conditionals_sxic.csv";
-			fprintf(gridFileName,CLEAR_FILE);
+			gridFileName =  LAST_FILE_PATH +"."+AAString[residue]+"."+col+".conditionals.csv";
+			/*fprintf(gridFileName,CLEAR_FILE);
 			
+			fprintf(gridFileName,AAString[residue],",",num_alpha,",",num_beta,"\n");
 			index = 0;
 			for(_x = 0 ; _x < num_alpha ; _x += 1)
 			{
@@ -283,34 +285,45 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 					index += 1;
 				}
 				fprintf(gridFileName,"\n");
-			}
+			}*/
 			fprintf (gridInfoFile,CLEAR_FILE, fadeGrid, "\n", gridInfo);
 		}
 		
-
-	       _fubarMCMCSamplesLocation =  LAST_FILE_PATH +"."+AAString[residue]+".samples";
-	       //_fubarGridInfoLocation = gridInfoFile;   
-	
-		_lastSampleFile = _fubarMCMCSamplesLocation+"."+(_fubarChainCount-1);
-		_resultsFile = LAST_FILE_PATH+"." + AAString[residue] + ".fade.csv";
-		if(_cachingOK && !_lastSampleFile  && !_resultsFile)
+		if(runmcmc) // mcmc for testing purposes only
 		{
-			fprintf (stdout, "[CACHED] MCMC chains founds for residue: ",AAString[residue], "\n"); 
+			_resultsFile = LAST_FILE_PATH+"." + AAString[residue] + ".mcmc.results.csv";
+			_fubarMCMCSamplesLocation =  LAST_FILE_PATH +"."+AAString[residue]+".samples";
+	      		_fubarGridInfoLocation = gridInfoFile;   
+			_lastSampleFile = _fubarMCMCSamplesLocation+"."+(_fubarChainCount-1);
+			if(_cachingOK && !_lastSampleFile  && !_resultsFile)
+			{
+				fprintf (stdout, "[CACHED] MCMC chains founds for residue: ",AAString[residue], "\n"); 
 			
-		}		
-		else
-		{
-			// run MCMC chains for this amino acid
-		       runPhase3(_fubarMCMCSamplesLocation, gridInfoFile, _fubarChainCount, _fubarChainLength, _fubarChainBurnin,_fubarTotalSamples, _fubarPriorShape);
-       
-		       // process results of MCMC chains		
-		       runPhase4(LAST_FILE_PATH, gridInfoFile, _fubarMCMCSamplesLocation, _fubarChainCount, _resultsFile);
+			}		
+			else
+			{			
+				thetaFile = LAST_FILE_PATH +"."+AAString[residue]+".theta";
+				// run MCMC chains for this amino acid
+				ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3_mcmc.bf"}}), {"0": "" +  _fubarMCMCSamplesLocation, "1" : "" +_fubarGridInfoLocation, "2": "" + _fubarChainCount, "3": "" +  _fubarChainLength, "4": "" + _fubarChainBurnin, "5": "" + _fubarTotalSamples, "6": "" + _fubarPriorShape});
+	       
+			       // process results of MCMC chains		
+			       ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_mcmc.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + gridInfoFile, "2": "" + _fubarMCMCSamplesLocation, "3": "" +  _fubarChainCount, "4": "" + _resultsFile});
+			}
 		}
-
-		//fprintf	(stdout, "Test ", "Bias term           = ", Format(rateBiasTo,8,5), "\n\tproportion          = ", Format(P_bias,8,5),"\n");
-		//DoResults 	(residue);
-	}
+	}	
 }
+
+// Phase 3 iterative
+ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3_iterative.bf"}}), {"0": "" +  concentration});
+
+// Phase 4 iterative
+for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror each amino acid
+{
+	gridInfoFile = LAST_FILE_PATH +"."+AAString[residue]+".grid_info";
+	thetaFile = LAST_FILE_PATH +"."+AAString[residue]+".theta";
+	runIterativePhase4(LAST_FILE_PATH,gridInfoFile,thetaFile, LAST_FILE_PATH +"."+AAString[residue]+".results.csv");
+}
+
 
 
 /*
@@ -611,16 +624,32 @@ function DoResults (residueIn)
 	return 0;
 }
 
-function runPhase3(_fubarMCMCSamplesLocation, _fubarGridInfoLocation, _fubarChainCount, _fubarChainLength, _fubarChainBurnin,_fubarTotalSamples, _fubarPriorShape)
+function runIterativePhase4(nuc_fit_file,grid_file,weights_file, results_file)
 {
-  ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3.bf"}}), {"0": "" +  _fubarMCMCSamplesLocation, "1" : "" +_fubarGridInfoLocation, "2": "" + _fubarChainCount, "3": "" +  _fubarChainLength, "4": "" + _fubarChainBurnin, "5": "" + _fubarTotalSamples, "6": "" + _fubarPriorShape});
-  return 0;
+	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + nuc_fit_file, "1" : "" + grid_file, "2": "" + weights_file,"3": "" + results_file});
+  	return 0;
 }
 
+function vectorToMatrix(columnVector, rows)
+{
+	npoints = Rows(columnVector);
+	if(npoints % rows != 0)
+	{
+		fprintf(stdout, npoints, " is not divisible by ", rows,".\n");
+		return 0;
+	}
+	
+	columns = npoints / rows;
+	matrixret = {rows, columns};
+	index = 0;
+	for(_x = 0 ; _x < rows ; _x += 1)
+	{
+		for(_y = 0 ; _y < columns ; _y += 1)
+		{
+			matrixret[_x][_y] = columnVector[index];
+			index += 1;
+		}
+	}
 
-function runPhase4(nuc_fit_file, grid_file, sample_base_file, _chainCount, results_file) 
-{ 
-  ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4.bf"}}), {"0": "" + nuc_fit_file, "1" : "" + grid_file, "2": "" + sample_base_file, "3": "" +  _chainCount, "4": "" + results_file});
-  return 0;
+	return matrixret;
 }
-
