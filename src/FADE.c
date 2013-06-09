@@ -42,7 +42,7 @@ ChoiceList						(reloadFlag, "Reload/New", 1, SKIP_NONE, "New analysis","Start a
 																		  
 ACCEPT_ROOTED_TREES 			= 1;
 
-if (reloadFlag == 0)
+if (reloadFlag == 0) // optimize baseline model
 {
 	/* new analysis, fit baseline model */
 	
@@ -206,16 +206,19 @@ bySiteSummary	 = {};
 
 /*------------------------------------------------------------------------------*/
 
- _fubarChainCount = prompt_for_a_value ("Number of MCMC chains to run",5,2,20,1);
-fprintf (stdout, "[DIAGNOSTIC] FUBAR will use run ", _fubarChainCount, " independent chains\n"); 
-_fubarChainLength  = prompt_for_a_value ("The length of each chain",2000000,500000,100000000,1);    
-fprintf (stdout, "[DIAGNOSTIC] FUBAR will run the chains for ", _fubarChainLength, " steps\n"); 
-_fubarChainBurnin  = prompt_for_a_value ("Discard this many samples as burn-in",_fubarChainLength$2,_fubarChainLength$20,_fubarChainLength*95$100,1);
-fprintf (stdout, "[DIAGNOSTIC] FUBAR will run discard ", _fubarChainBurnin, " steps as burn-in\n"); 
-_fubarTotalSamples = prompt_for_a_value ("How many samples should be drawn from each chain",100,10,_fubarChainLength-_fubarChainBurnin,1);    
-fprintf (stdout, "[DIAGNOSTIC] FUBAR will run thin each chain down to ", _fubarTotalSamples, " samples\n"); 
+if(runmcmc)
+{
+	 _fubarChainCount = prompt_for_a_value ("Number of MCMC chains to run",5,2,20,1);
+	fprintf (stdout, "[DIAGNOSTIC] FADE will use run ", _fubarChainCount, " independent chains\n"); 
+	_fubarChainLength  = prompt_for_a_value ("The length of each chain",2000000,500000,100000000,1);    
+	fprintf (stdout, "[DIAGNOSTIC] FADE will run the chains for ", _fubarChainLength, " steps\n"); 
+	_fubarChainBurnin  = prompt_for_a_value ("Discard this many samples as burn-in",_fubarChainLength$2,_fubarChainLength$20,_fubarChainLength*95$100,1);
+	fprintf (stdout, "[DIAGNOSTIC] FADE will run discard ", _fubarChainBurnin, " steps as burn-in\n"); 
+	_fubarTotalSamples = prompt_for_a_value ("How many samples should be drawn from each chain",100,10,_fubarChainLength-_fubarChainBurnin,1);    
+	fprintf (stdout, "[DIAGNOSTIC] FADE will run thin each chain down to ", _fubarTotalSamples, " samples\n"); 
+}
 _fubarPriorShape = prompt_for_a_value ("The concentration parameter of the Dirichlet prior",0.5,0.001,1,0);    
-fprintf (stdout, "[DIAGNOSTIC] FUBAR will use the Dirichlet prior concentration parameter of ", _fubarPriorShape, "\n"); 
+fprintf (stdout, "[DIAGNOSTIC] FADE will use the Dirichlet prior concentration parameter of ", _fubarPriorShape, "\n"); 
 
 fadeGrid = 					defineFadeGrid (num_alpha, num_beta);
 
@@ -266,26 +269,11 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 			col = 152;
 			
 			conditionalsGrid = gridInfo["conditionals"];
-			gridFileName =  LAST_FILE_PATH +"."+AAString[residue]+"."+col+".conditionals.csv";
-			/*fprintf(gridFileName,CLEAR_FILE);
-			
-			fprintf(gridFileName,AAString[residue],",",num_alpha,",",num_beta,"\n");
-			index = 0;
-			for(_x = 0 ; _x < num_alpha ; _x += 1)
-			{
-				for(_y = 0 ; _y < num_beta ; _y += 1)
-				{
-					fprintf(gridFileName,conditionalsGrid[sites*index+col]);
-					//printf(gridFileName,conditionalsGrid[points*index+col]);
-					if(_y < num_beta - 1)
-					{
-						fprintf(gridFileName,",");
-					}
-					//fprintf(stdout,_x,",",_y,"\t",fadeGrid[index][0],"\t",fadeGrid[index][1],"\t",gridInfo["conditionals"][sites*col+index],"\n");
-					index += 1;
-				}
-				fprintf(gridFileName,"\n");
-			}*/
+			saveGridForSite(conditionalsGrid, num_alpha, num_beta, 40);
+			saveGridForSite(conditionalsGrid, num_alpha, num_beta, 75);
+			saveGridForSite(conditionalsGrid, num_alpha, num_beta, 152);
+			saveGridForSite(conditionalsGrid, num_alpha, num_beta, 231);
+			saveGridForSite(conditionalsGrid, num_alpha, num_beta, 304);
 			fprintf (gridInfoFile,CLEAR_FILE, fadeGrid, "\n", gridInfo);
 		}
 		
@@ -652,4 +640,28 @@ function vectorToMatrix(columnVector, rows)
 	}
 
 	return matrixret;
+}
+
+function saveGridForSite(conditionalsGrid, num_alpha, num_beta, col)
+{	
+	gridFileName =  LAST_FILE_PATH +"."+AAString[residue]+"."+col+".conditionals.csv";
+	fprintf(gridFileName,CLEAR_FILE);			
+	fprintf(gridFileName,AAString[residue],",",num_alpha,",",num_beta,"\n");
+	index = 0;
+	for(_x = 0 ; _x < num_alpha ; _x += 1)
+	{
+		for(_y = 0 ; _y < num_beta ; _y += 1)
+		{
+			fprintf(gridFileName,conditionalsGrid[sites*index+col]);
+			//printf(gridFileName,conditionalsGrid[points*index+col]);
+			if(_y < num_beta - 1)
+			{
+				fprintf(gridFileName,",");
+			}
+			//fprintf(stdout,_x,",",_y,"\t",fadeGrid[index][0],"\t",fadeGrid[index][1],"\t",gridInfo["conditionals"][sites*col+index],"\n");
+			index += 1;
+		}
+		fprintf(gridFileName,"\n");
+	}
+	return 0;
 }

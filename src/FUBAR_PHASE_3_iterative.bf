@@ -22,7 +22,6 @@ sum_by_site        = normalized_weights * ({sites,1}["1"]);
 priorvec		= {points,1}["_concentration"];
 
 
-countBetaOnes = +({points,1} ["grid[_MATRIX_ELEMENT_ROW_][1]==1"]);
 
 priorvec = {points,1} ["concentration*(1+18*(grid[_MATRIX_ELEMENT_ROW_][1]==1))"];
 fprintf(stdout,"priorvec",priorvec,"\n");

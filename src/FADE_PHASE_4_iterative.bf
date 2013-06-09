@@ -11,6 +11,8 @@ fscanf (grid_file, REWIND, "NMatrix,Raw", grid, site_probs);
 fscanf (weights_file, REWIND, "NMatrix", learntWeights);
 
 site_probs = Eval (site_probs);
+
+points             = Rows(site_probs["conditionals"]);
 sites   = Columns (site_probs["conditionals"]);
 
 transWeights = Transpose(learntWeights);
