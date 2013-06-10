@@ -12,8 +12,8 @@ fscanf (weights_file, REWIND, "NMatrix", learntWeights);
 
 site_probs = Eval (site_probs);
 
-points             = Rows(site_probs["conditionals"]);
-sites   = Columns (site_probs["conditionals"]);
+points           = Rows(site_probs["conditionals"]);
+sites  		 = Columns (site_probs["conditionals"]);
 
 transWeights = Transpose(learntWeights);
 
@@ -57,5 +57,5 @@ for (currentFubarIndex = 0; currentFubarIndex < fubarRowCount; currentFubarIndex
     site_counter + (currentFubarIndex+1);
 }
 
-WriteSeparatedTable (results_file, {{"Codon","alpha","beta","Prob[bias=1]", "Prob[bias>1]","BF[beta>alpha]"}}, bySitePosSel, site_counter, ",");
+WriteSeparatedTable (results_file, {{"Codon","alpha","bias","Prob[bias=1]", "Prob[bias>1]","BF[beta>alpha]"}}, bySitePosSel, site_counter, ",");
 

@@ -13,7 +13,7 @@ AAString    = "ACDEFGHIKLMNPQRSTVWY";
 run_residue = -1;
 num_alpha = 20;
 num_beta = 20;
-_cachingOK = 1;
+_cachingOK = 0;
 concentration = 0.5;
 runmcmc = 0; // for testing purposes only
 
@@ -204,6 +204,9 @@ fixGlobalParameters ("lf");
 byResidueSummary = {};
 bySiteSummary	 = {};
 
+bpSplit						 = splitFilePath (LAST_FILE_PATH);
+basePath					 = bpSplit["DIRECTORY"];
+
 /*------------------------------------------------------------------------------*/
 
 if(runmcmc)
@@ -269,11 +272,20 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 			col = 152;
 			
 			conditionalsGrid = gridInfo["conditionals"];
-			saveGridForSite(conditionalsGrid, num_alpha, num_beta, 40);
-			saveGridForSite(conditionalsGrid, num_alpha, num_beta, 75);
-			saveGridForSite(conditionalsGrid, num_alpha, num_beta, 152);
-			saveGridForSite(conditionalsGrid, num_alpha, num_beta, 231);
-			saveGridForSite(conditionalsGrid, num_alpha, num_beta, 304);
+			for(_s = 0 ; _s < sites ; _s += 1)
+			{
+				conditionals_out = basePath+"/conditionals/"+AAString[residue]+"."+_s+".csv";
+				//saveGridForSite(basePath+"/conditionals/"+AAString[residue]+"."+_s+".csv",conditionalsGrid,num_alpha,num_beta,_s);
+				//fprintf(conditionals_out);
+				fprintf(conditionals_out,CLEAR_FILE,AAString[residue]+","+num_alpha+","+num_beta+"\n"+getGridStringForSite(conditionalsGrid,fadeGrid,num_alpha,num_beta,_s));
+				//conditionalsGridForSite = vectorToMatrixCSVstring(conditionalsGrid, num_alpha);
+				//fprintf(basePath+"/conditionals/"+AAString[residue]+"."+_s+".csv",conditionalsGridForSite,"\n");
+			}
+			//saveGridForSite(conditionalsGrid, num_alpha, num_beta, 40);
+			//saveGridForSite(conditionalsGrid, num_alpha, num_beta, 75);
+			//saveGridForSite(conditionalsGrid, num_alpha, num_beta, 152);
+			//saveGridForSite(conditionalsGrid, num_alpha, num_beta, 231);
+			//saveGridForSite(conditionalsGrid, num_alpha, num_beta, 304);
 			fprintf (gridInfoFile,CLEAR_FILE, fadeGrid, "\n", gridInfo);
 		}
 		
@@ -304,13 +316,16 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 // Phase 3 iterative
 ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3_iterative.bf"}}), {"0": "" +  concentration});
 
+ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative2.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + "dummy1.txt", "2": "" + "dummy2.txt","3": "" + LAST_FILE_PATH+"_all.csv"});
+
+/*
 // Phase 4 iterative
 for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror each amino acid
 {
 	gridInfoFile = LAST_FILE_PATH +"."+AAString[residue]+".grid_info";
 	thetaFile = LAST_FILE_PATH +"."+AAString[residue]+".theta";
 	runIterativePhase4(LAST_FILE_PATH,gridInfoFile,thetaFile, LAST_FILE_PATH +"."+AAString[residue]+".results.csv");
-}
+}*/
 
 
 
@@ -642,9 +657,35 @@ function vectorToMatrix(columnVector, rows)
 	return matrixret;
 }
 
-function saveGridForSite(conditionalsGrid, num_alpha, num_beta, col)
+function vectorToMatrixCSVstring(columnVector, rows)
+{
+	npoints = Rows(columnVector);
+	if(npoints % rows != 0)
+	{
+		fprintf(stdout, "vectorToMatrix:", npoints, " is not divisible by ", rows,".\n");
+		return 0;
+	}
+	
+	columns = npoints / rows;
+	matrixret = "";
+	index = 0;
+	for(_x = 0 ; _x < rows ; _x += 1)
+	{
+		matrixret = matrixret+(1+_x);
+		for(_y = 0 ; _y < columns ; _y += 1)
+		{
+			matrixret = matrixret + ","+columnVector[index];
+			index += 1;
+		}
+		matrixret = matrixret+"\n";
+	}
+
+	return matrixret;
+}
+
+function saveGridForSite(gridFileName, conditionalsGrid, num_alpha, num_beta, col)
 {	
-	gridFileName =  LAST_FILE_PATH +"."+AAString[residue]+"."+col+".conditionals.csv";
+	//gridFileName =  LAST_FILE_PATH +"."+AAString[residue]+"."+col+".conditionals.csv";
 	fprintf(gridFileName,CLEAR_FILE);			
 	fprintf(gridFileName,AAString[residue],",",num_alpha,",",num_beta,"\n");
 	index = 0;
@@ -653,15 +694,55 @@ function saveGridForSite(conditionalsGrid, num_alpha, num_beta, col)
 		for(_y = 0 ; _y < num_beta ; _y += 1)
 		{
 			fprintf(gridFileName,conditionalsGrid[sites*index+col]);
-			//printf(gridFileName,conditionalsGrid[points*index+col]);
 			if(_y < num_beta - 1)
 			{
 				fprintf(gridFileName,",");
 			}
-			//fprintf(stdout,_x,",",_y,"\t",fadeGrid[index][0],"\t",fadeGrid[index][1],"\t",gridInfo["conditionals"][sites*col+index],"\n");
 			index += 1;
 		}
 		fprintf(gridFileName,"\n");
 	}
 	return 0;
+}
+
+function getGridStringForSite(conditionalsGrid, grid, num_alpha, num_beta, col)
+{	
+	ret_string = "";
+	
+	ret_string += ",";
+	index = 0;
+	for(_x = 0 ; _x < num_alpha ; _x += 1)
+	{
+		for(_y = 0 ; _y < num_beta ; _y += 1)
+		{
+			if(_x == 0)
+			{
+				ret_string += grid[index][1];
+				if(_y < num_beta - 1)
+				{
+					ret_string += ",";
+				}
+			}
+			index += 1;
+		}
+	}
+
+	ret_string += "\n";
+	index = 0;
+	for(_x = 0 ; _x < num_alpha ; _x += 1)
+	{
+		ret_string += grid[index][0];
+		ret_string += ",";
+		for(_y = 0 ; _y < num_beta ; _y += 1)
+		{
+			ret_string += conditionalsGrid[sites*index+col];
+			if(_y < num_beta - 1)
+			{
+				ret_string += ",";
+			}
+			index += 1;
+		}
+		ret_string += "\n";
+	}
+	return ret_string;
 }
