@@ -16,6 +16,7 @@ num_beta = 20;
 _cachingOK = 0;
 concentration = 0.5;
 runmcmc = 0; // for testing purposes only
+save_conditionals = 1;
 
 if(run_residue < 0)
 {
@@ -188,12 +189,12 @@ baselineBL						= BranchLength (givenTree,-1);
 
 referenceL						= (baselineBL * (Transpose(baselineBL)["1"]))[0];
 
-summaryPath		             			= basePath+".summary";
-substitutionsPath					= basePath+"_subs.csv";
-siteReportMap				   		= basePath+"_bysite.csv";
-fprintf 						(summaryPath, CLEAR_FILE, KEEP_OPEN);
+//summaryPath		             			= basePath+".summary";
+//substitutionsPath					= basePath+"_subs.csv";
+//siteReportMap				   		= basePath+"_bysite.csv";
+//fprintf 						(summaryPath, CLEAR_FILE, KEEP_OPEN);
 fprintf							(stdout,      "[PHASE 0.2] Standard model fit. Log-L = ",baselineLogL,". Tree length = ",referenceL, " subs/site \n"); 
-fprintf							(summaryPath, "[PHASE 0.2] Standard model fit. Log-L = ",baselineLogL,". Tree length = ",referenceL, " subs/site \n"); 
+//fprintf							(summaryPath, "[PHASE 0.2] Standard model fit. Log-L = ",baselineLogL,". Tree length = ",referenceL, " subs/site \n"); 
 
 
 ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "Utility" + DIRECTORY_SEPARATOR + "GrabBag.bf");
@@ -269,23 +270,16 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 			gridInfo = computeLFOnGrid("lfb", fadeGrid, 1); // phase 2
 			points = Rows (gridInfo["conditionals"]);
 			sites = Columns (gridInfo["conditionals"]);
-			col = 152;
 			
-			conditionalsGrid = gridInfo["conditionals"];
-			for(_s = 0 ; _s < sites ; _s += 1)
+			if(save_conditionals)
 			{
-				conditionals_out = basePath+"/conditionals/"+AAString[residue]+"."+_s+".csv";
-				//saveGridForSite(basePath+"/conditionals/"+AAString[residue]+"."+_s+".csv",conditionalsGrid,num_alpha,num_beta,_s);
-				//fprintf(conditionals_out);
-				fprintf(conditionals_out,CLEAR_FILE,AAString[residue]+","+num_alpha+","+num_beta+"\n"+getGridStringForSite(conditionalsGrid,fadeGrid,num_alpha,num_beta,_s));
-				//conditionalsGridForSite = vectorToMatrixCSVstring(conditionalsGrid, num_alpha);
-				//fprintf(basePath+"/conditionals/"+AAString[residue]+"."+_s+".csv",conditionalsGridForSite,"\n");
+				conditionalsGrid = gridInfo["conditionals"];
+				for(_s = 0 ; _s < sites ; _s += 1)
+				{
+					conditionals_out = basePath+"/conditionals/"+AAString[residue]+"."+_s+".csv";
+					fprintf(conditionals_out,CLEAR_FILE,getGridStringForSite(conditionalsGrid,fadeGrid,num_alpha,num_beta,_s));
+				}
 			}
-			//saveGridForSite(conditionalsGrid, num_alpha, num_beta, 40);
-			//saveGridForSite(conditionalsGrid, num_alpha, num_beta, 75);
-			//saveGridForSite(conditionalsGrid, num_alpha, num_beta, 152);
-			//saveGridForSite(conditionalsGrid, num_alpha, num_beta, 231);
-			//saveGridForSite(conditionalsGrid, num_alpha, num_beta, 304);
 			fprintf (gridInfoFile,CLEAR_FILE, fadeGrid, "\n", gridInfo);
 		}
 		
@@ -306,8 +300,8 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 				// run MCMC chains for this amino acid
 				ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3_mcmc.bf"}}), {"0": "" +  _fubarMCMCSamplesLocation, "1" : "" +_fubarGridInfoLocation, "2": "" + _fubarChainCount, "3": "" +  _fubarChainLength, "4": "" + _fubarChainBurnin, "5": "" + _fubarTotalSamples, "6": "" + _fubarPriorShape});
 	       
-			       // process results of MCMC chains		
-			       ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_mcmc.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + gridInfoFile, "2": "" + _fubarMCMCSamplesLocation, "3": "" +  _fubarChainCount, "4": "" + _resultsFile});
+			        // process results of MCMC chains		
+			        ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_mcmc.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + gridInfoFile, "2": "" + _fubarMCMCSamplesLocation, "3": "" +  _fubarChainCount, "4": "" + _resultsFile});
 			}
 		}
 	}	
