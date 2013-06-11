@@ -31,8 +31,6 @@ SKIP_MODEL_PARAMETER_LIST = 0;
 LoadFunctionLibrary ("GrabBag");
 LoadFunctionLibrary ("ReadDelimitedFiles");
 
-test_p_values = {20,2};
-
 ChoiceList						(reloadFlag, "Reload/New", 1, SKIP_NONE, "New analysis","Start a new analysis",
 																	      "Reload","Reload a baseline protein fit.");
 																		  
@@ -41,10 +39,11 @@ ACCEPT_ROOTED_TREES 			= 1;
 // Phase 1: Optimize the baseline model or load existing from file
 if (reloadFlag == 0) // optimize baseline model
 {
+	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{HYPHY_LIB_DIRECTORY[0][Abs(HYPHY_LIB_DIRECTORY)-2],"TemplateBatchFiles","_MFReader_.ibf"}}));
+
 	/* new analysis, fit baseline model */
 	
-	/* this should be a protein alignment */
-	DataSet			ds 			 = ReadDataFile (PROMPT_FOR_FILE);
+	DataSet	ds					 = ReadDataFile (PROMPT_FOR_FILE); // must be protein or codon alignment
 	basePath 					 = LAST_FILE_PATH;
 	DataSetFilter   filteredData = CreateFilter (ds,1);
 	GetDataInfo		(checkCharacters, filteredData, "CHARACTERS");
@@ -75,7 +74,8 @@ if (reloadFlag == 0) // optimize baseline model
 	ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "queryTree.bf");
 	ChoiceList						(fixFB, "Fix Branch", 1, SKIP_NONE, "Unknown root","The character at the root of the tree is drawn from the stationary distribution",
 																		"Fix 1st sequence as root","The 1st sequence in the file (assumed to be a direct descendant of the root) is used to populate the root sequences.");
-	
+
+
 	/* check if the tree is rooted */
 	
 	treeAVL  = givenTree^0;
@@ -306,7 +306,7 @@ if(mcmc == 0) // only run if didn't run mcmc, might need to change this for test
 
 	// Phase 4 iterative
 	fprintf	(stdout,      "[PHASE 4] Computing posteriors and tabulating results.\n"); 
-	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + "dummy1.txt", "2": "" + "dummy2.txt","3": "" + LAST_FILE_PATH+"_allresults.csv", "4": "" + LAST_FILE_PATH+"_webdata.mat"});
+	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + LAST_FILE_PATH, "1": "" + LAST_FILE_PATH+"_allresults.csv", "2": LAST_FILE_PATH+"_summary.txt", "3": "" + LAST_FILE_PATH+"_webdata.mat"});
 }
 
 function vectorToMatrix(columnVector, rows)
