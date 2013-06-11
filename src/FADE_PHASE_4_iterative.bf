@@ -2,6 +2,7 @@ fscanf              (stdin, "String", nuc_fit_file);
 fscanf              (stdin, "String", grid_file);
 fscanf              (stdin, "String", weights_file);
 fscanf              (stdin, "String", results_file);
+fscanf              (stdin, "String", web_file);
 
 ExecuteAFile        (PATH_TO_CURRENT_BF + "FUBAR_tools_iterative.ibf");
 LoadFunctionLibrary ("GrabBag");
@@ -98,6 +99,5 @@ for(residue = 0 ; residue < 20 ; residue += 1)
 
 
 WriteSeparatedTable (results_file, header, full_table, site_counter, ",");
-fprintf("webdata.txt", full_table);
-//fscanf ("webdata.txt", REWIND, "NMatrix,Raw",readFile);
+fprintf(web_file, full_table);
 
