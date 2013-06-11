@@ -79,7 +79,7 @@ for (s = 0; s < sites; s+=1) {
 	{
 		if(full_table[s][residue*5+3] > 0.9) // if P(Bias > 1) > 0.9
 		{
-			fprintf(summary_file, "Site ",(s+1),", ->"+AAString[residue], ", E[Bias] = ", full_table[s][residue*5+1],", P(Bias>1) = ", full_table[s][residue*5+3], ", BF = ", full_table[s][residue*5+4],"\n"); 
+			fprintf(summary_file, "Site ",(s+1),"-> "+AAString[residue], ", E[Bias] = ", full_table[s][residue*5+1],", P(Bias>1) = ", full_table[s][residue*5+3], ", BF = ", full_table[s][residue*5+4],"\n"); 
 		}
 	}
 }
