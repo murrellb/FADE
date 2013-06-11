@@ -6,12 +6,12 @@ AAString    = "ACDEFGHIKLMNPQRSTVWY";
 
 //run_residue = 16; // run only this residue, -1 => run all residues
 run_residue = -1;
-num_alpha = 20;
-num_beta = 20;
+num_alpha = 20; // number of site-to-site rate variation grid points
+num_beta = 20; // number of bias grid points
 _cachingOK = 1;
 concentration = 0.5;
 runmcmc = 0; // for testing purposes only
-save_conditionals = 0;
+save_conditionals = 0;  // for testing purposes only
 
 if(run_residue < 0)
 {
@@ -50,7 +50,7 @@ if (reloadFlag == 0) // optimize baseline model
 	GetDataInfo		(checkCharacters, filteredData, "CHARACTERS");
 	if (Columns (checkCharacters) != 20) // check if amino acid
 	{
-		if(Columns (checkCharacters) < 10) // convert if codon
+		if(Columns (checkCharacters) < 10) // convert to amino acid if codon
 		{
 			fprintf(stdout, "Codon data needs to be translated to amino acid data.");
 			translatedDataset  = translateCodonToAminoAcid(LAST_FILE_PATH, 1);
@@ -66,7 +66,7 @@ if (reloadFlag == 0) // optimize baseline model
 	
 	promptModel (0); // prompts user for AA model - no rate variation
 
-	AddABiasFADE					(modelNameString,"backgroundMatrix",21); // don't add a bias
+	AddABiasFADE					(modelNameString,"backgroundMatrix",21); // 21 = don't add a bias
 	Model						FG = (backgroundMatrix, vectorOfFrequencies, 1); 
 	Model						BG = (backgroundMatrix, vectorOfFrequencies, 1);
 	
@@ -110,7 +110,7 @@ if (reloadFlag == 0) // optimize baseline model
 
 	
 	LikelihoodFunction lf 		= 	(filteredData, givenTree);
-	fprintf							(stdout, "[PHASE 0.1] Standard model fit\n"); 
+	fprintf							(stdout, "[PHASE 1.1] Standard model fit\n"); 
 	
 	
 	alpha := 1;
@@ -184,7 +184,7 @@ baselineBL						= BranchLength (givenTree,-1);
 
 referenceL						= (baselineBL * (Transpose(baselineBL)["1"]))[0];
 
-fprintf							(stdout,      "[PHASE 0.2] Standard model fit. Log-L = ",baselineLogL,". Tree length = ",referenceL, " subs/site \n"); 
+fprintf							(stdout,      "[PHASE 1.2] Standard model fit. Log-L = ",baselineLogL,". Tree length = ",referenceL, " subs/site \n"); 
 
 ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "Utility" + DIRECTORY_SEPARATOR + "GrabBag.bf");
 ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "Utility" + DIRECTORY_SEPARATOR + "AncestralMapper.bf");
@@ -215,11 +215,12 @@ fprintf (stdout, "[DIAGNOSTIC] FADE will use the Dirichlet prior concentration p
 
 fadeGrid = 					defineFadeGrid (num_alpha, num_beta);
 
+fprintf	(stdout,      "[PHASE 2] Computing conditional likelihoods.\n"); 
 for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror each amino acid
 {
 	if(run_residue == residue || run_residue < 0)
-	{
-		AddABiasFADE2					(backgroundMatrix,"backgroundMatrix2",21);
+	{ 
+		AddABiasFADE2					(backgroundMatrix,"backgroundMatrix2",21); // 21 = don't add a bias
 		AddABiasFADE2					(backgroundMatrix,"biasedMatrix",residue);	
 
 		index = 0;
@@ -256,11 +257,11 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 		}
 		else
 		{
-			gridInfo = computeLFOnGrid("lfb", fadeGrid, 1); // phase 2
+			gridInfo = computeLFOnGrid("lfb", fadeGrid, 1);
 			points = Rows (gridInfo["conditionals"]);
 			sites = Columns (gridInfo["conditionals"]);
 			
-			if(save_conditionals)
+			if(save_conditionals) // conditionals folder needs to be present in data directory, otherwise this will crash
 			{
 				conditionalsGrid = gridInfo["conditionals"];
 				for(_s = 0 ; _s < sites ; _s += 1)
@@ -296,15 +297,16 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 	}	
 }
 
-// Phase 3 iterative
-ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3_iterative.bf"}}), {"0": "" +  concentration});
-// Phase 4 iterative
-ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + "dummy1.txt", "2": "" + "dummy2.txt","3": "" + LAST_FILE_PATH+"_all.csv", "4": "" + LAST_FILE_PATH+"_webdata.mat"});
 
-function runIterativePhase4(nuc_fit_file,grid_file,weights_file, results_file)
+if(mcmc == 0) // only run if didn't run mcmc, might need to change this for testing
 {
-	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + nuc_fit_file, "1" : "" + grid_file, "2": "" + weights_file,"3": "" + results_file});
-  	return 0;
+	// Phase 3 iterative
+	fprintf	(stdout,      "[PHASE 3] Computing Dirichlet weights using iterative algorithm.\n"); 
+	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3_iterative.bf"}}), {"0": "" +  concentration});
+
+	// Phase 4 iterative
+	fprintf	(stdout,      "[PHASE 4] Computing posteriors and tabulating results.\n"); 
+	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + "dummy1.txt", "2": "" + "dummy2.txt","3": "" + LAST_FILE_PATH+"_allresults.csv", "4": "" + LAST_FILE_PATH+"_webdata.mat"});
 }
 
 function vectorToMatrix(columnVector, rows)
@@ -359,7 +361,6 @@ function vectorToMatrixCSVstring(columnVector, rows)
 
 function saveGridForSite(gridFileName, conditionalsGrid, num_alpha, num_beta, col)
 {	
-	//gridFileName =  LAST_FILE_PATH +"."+AAString[residue]+"."+col+".conditionals.csv";
 	fprintf(gridFileName,CLEAR_FILE);			
 	fprintf(gridFileName,AAString[residue],",",num_alpha,",",num_beta,"\n");
 	index = 0;
