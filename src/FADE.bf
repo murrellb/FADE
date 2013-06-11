@@ -31,7 +31,7 @@ SKIP_MODEL_PARAMETER_LIST = 0;
 
 #include "AddABias.bf";
 #include "GrabBag.bf";
-#include "FUBAR_tools.ibf";
+#include "FUBAR_tools_iterative.ibf";
 #include "CodonToProtein.bf";
 LoadFunctionLibrary ("GrabBag");
 LoadFunctionLibrary ("ReadDelimitedFiles");
