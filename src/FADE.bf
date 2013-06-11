@@ -1,7 +1,3 @@
-//callPhase4();
-
-
-
 /* define an associative array with key = amino acid and value = integer
 	index for AA in alphabetical order */
 AAString    = "ACDEFGHIKLMNPQRSTVWY";
@@ -9,7 +5,6 @@ AAString    = "ACDEFGHIKLMNPQRSTVWY";
 
 
 //run_residue = 16; // run only this residue, -1 => run all residues
-//run_residue = -1; // run only this residue, -1 => run all residues
 run_residue = -1;
 num_alpha = 20;
 num_beta = 20;
@@ -43,6 +38,7 @@ ChoiceList						(reloadFlag, "Reload/New", 1, SKIP_NONE, "New analysis","Start a
 																		  
 ACCEPT_ROOTED_TREES 			= 1;
 
+// Phase 1: Optimize the baseline model or load existing from file
 if (reloadFlag == 0) // optimize baseline model
 {
 	/* new analysis, fit baseline model */
@@ -179,7 +175,6 @@ else
 
 treeContainsTags = (treeString||"{FG}")[0][0] != -1;
 
-/* when the heck does biasedTree get called?  It's tucked inside runAFit() in AddABias.ibf... */
 root_left  = "biasedTree." + (treeAVL[(rootNode["Children"])[0]])["Name"] + ".t";
 root_right = "biasedTree." + (treeAVL[(rootNode["Children"])[1]])["Name"] + ".t";
 
@@ -189,13 +184,7 @@ baselineBL						= BranchLength (givenTree,-1);
 
 referenceL						= (baselineBL * (Transpose(baselineBL)["1"]))[0];
 
-//summaryPath		             			= basePath+".summary";
-//substitutionsPath					= basePath+"_subs.csv";
-//siteReportMap				   		= basePath+"_bysite.csv";
-//fprintf 						(summaryPath, CLEAR_FILE, KEEP_OPEN);
 fprintf							(stdout,      "[PHASE 0.2] Standard model fit. Log-L = ",baselineLogL,". Tree length = ",referenceL, " subs/site \n"); 
-//fprintf							(summaryPath, "[PHASE 0.2] Standard model fit. Log-L = ",baselineLogL,". Tree length = ",referenceL, " subs/site \n"); 
-
 
 ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "Utility" + DIRECTORY_SEPARATOR + "GrabBag.bf");
 ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "Utility" + DIRECTORY_SEPARATOR + "AncestralMapper.bf");
@@ -309,317 +298,8 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 
 // Phase 3 iterative
 ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3_iterative.bf"}}), {"0": "" +  concentration});
-
-ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + "dummy1.txt", "2": "" + "dummy2.txt","3": "" + LAST_FILE_PATH+"_all.csv", "4": "" + LAST_FILE_PATH+"_webdata.mat"});
-
-/*
 // Phase 4 iterative
-for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror each amino acid
-{
-	gridInfoFile = LAST_FILE_PATH +"."+AAString[residue]+".grid_info";
-	thetaFile = LAST_FILE_PATH +"."+AAString[residue]+".theta";
-	runIterativePhase4(LAST_FILE_PATH,gridInfoFile,thetaFile, LAST_FILE_PATH +"."+AAString[residue]+".results.csv");
-}*/
-
-
-
-/*
-fprintf							(substitutionsPath, CLEAR_FILE, KEEP_OPEN, "Site,From,To,Count");
-fprintf							(siteReportMap,     CLEAR_FILE, KEEP_OPEN, "Site");
-for (k=0; k<20; k=k+1)
-{
-	if(run_residue == k || run_residue < 0)
-	{
-		fprintf (siteReportMap, ",", AAString[k]);
-	}
-}
-fprintf (siteReportMap, "\nLRT p-value"); 
-
-// set unused residue's pvalues to zero
-if(run_residue >= 0)
-{
-	for (k=0; k<20; k=k+1)
-	{
-		if(run_residue != k)
-		{
-			test_p_values[k][0] = 1;
-		}
-	}
-}
-
-test_p_values       = test_p_values % 0; // sort the matrix by p-values ( stored in column)
-rejectedHypotheses   = {};
-
-for (k=0; k<20; k=k+1)
-{
-	if(run_residue == k || run_residue < 0)
-	{
-		pv      = (byResidueSummary[AAString[k]])["p"];
-		fprintf (siteReportMap, ",", pv);
-	}
-}
-
-fprintf (stdout, 	  "\nResidues (and p-values) for which there is evidence of directional selection\n");
-fprintf (summaryPath, "\nResidues (and p-values) for which there is evidence of directional selection");
-
-for (k=0; k<20; k=k+1)
-{
-	
-	if(run_residue >= 0 && test_p_values[k][0] < 0.05) // only testing one amino acid, so no multiple testing correction
-	{	
-		rejectedHypotheses  [test_p_values[k][1]]           = 1;
-		rejectedHypotheses  [AAString[test_p_values[k][1]]] = 1;
-		fprintf (stdout, 		"\n\t", AAString[test_p_values[k][1]], " : ",test_p_values[k][0] );
-		fprintf (summaryPath, 	"\n\t", AAString[test_p_values[k][1]], " : ",test_p_values[k][0] );
-	}
-	else
-	{	
-		if (test_p_values[k][0] < (0.05/(20-k)))
-		{
-			rejectedHypotheses  [test_p_values[k][1]]           = 1;
-			rejectedHypotheses  [AAString[test_p_values[k][1]]] = 1;
-			fprintf (stdout, 		"\n\t", AAString[test_p_values[k][1]], " : ",test_p_values[k][0] );
-			fprintf (summaryPath, 	"\n\t", AAString[test_p_values[k][1]], " : ",test_p_values[k][0] );
-		}
-		else
-		{
-			break;
-		}
-	}
-}
-
-
-fprintf (stdout, 	  "\n");
-fprintf (summaryPath, "\n");
-
-
-ancCacheID 						= _buildAncestralCache ("lf", 0);
-outputcount						= 0;
-
-for (k=0; k<filteredData.sites; k=k+1)
-{
-	thisSite = _substitutionsBySite (ancCacheID,k);
-	
-	for (char1 = 0; char1 < 20; char1 = char1+1)
-	{
-		for (char2 = 0; char2 < 20; char2 = char2+1)
-		{
-			if (char1 != char2 && (thisSite["COUNTS"])[char1][char2])
-			{	
-				ccount = (thisSite["COUNTS"])[char1][char2];
-				fprintf (substitutionsPath, "\n", k+1, ",", AAString[char1], ",", AAString[char2], "," , ccount);
-			}
-		}
-	}
-	
-
-	if (Abs(bySiteSummary[k]))
-	{
-		fprintf (siteReportMap, "\n", k+1);
-		
-		didSomething = 0;
-		pv			 = 0;
-		for (k2=0; k2<20; k2=k2+1)
-		{
-			if(run_residue == k2 || run_residue < 0)
-			{
-				if (Abs((byResidueSummary[AAString[k2]])["BFs"]) == 0 || rejectedHypotheses[k2] == 0)
-				{
-					fprintf (siteReportMap, ",N/A");
-				}
-				else
-				{
-					thisSitePV = ((byResidueSummary[AAString[k2]])["BFs"])[k];
-					pv = Max(pv,thisSitePV);
-					fprintf (siteReportMap, ",", thisSitePV);			
-					if (pv > 100)
-					{
-						didSomething = 1;
-					}
-				}
-			}
-		}
-		
-		if (!didSomething)
-		{
-			continue;
-		}
-		
-		if (outputcount == 0)
-		{
-			outputcount = 1;
-			fprintf (stdout, 		"\nThe list of sites which show evidence of directional selection (Bayes Factor > 20)\n",
-							 		"together with the target residues and inferred substitution counts\n");
-			fprintf (summaryPath, 	"\nThe list of sites which show evidence of directional selection (Bayes Factor > 20)\n",
-							 		"together with the target residues and inferred substitution counts\n");
-		}	
-		fprintf (stdout,      "\nSite ", Format (k+1,8,0), " (max BF = ", pv, ")\n Preferred residues: ");
-		fprintf (summaryPath, "\nSite ", Format (k+1,8,0), " (max BF = ", pv, ")\n Preferred residues: ");
-		
-		
-		for (k2 = 0; k2 < Abs (bySiteSummary[k]); k2=k2+1)
-		{
-			if(run_residue == k2 || run_residue < 0)
-			{
-				thisChar = (bySiteSummary[k])[k2];
-				if (rejectedHypotheses[thisChar])
-				{
-					fprintf (stdout,      thisChar);
-					fprintf (summaryPath, thisChar);
-				}
-			}
-		}
-
-		fprintf (stdout,      	   "\n Substitution counts:");
-		fprintf (summaryPath,      "\n Substitution counts:");
-
-		for (char1 = 0; char1 < 20; char1 = char1+1)
-		{
-			for (char2 = char1+1; char2 < 20; char2 = char2+1)
-			{
-				ccount  = (thisSite["COUNTS"])[char1][char2];
-				ccount2 = (thisSite["COUNTS"])[char2][char1];
-				if (ccount+ccount2)
-				{	
-					fprintf (stdout, 	  "\n\t", AAString[char1], "->", AAString[char2], ":", Format (ccount, 5, 0), "/",
-											 AAString[char2], "->", AAString[char1], ":", Format (ccount2, 5, 0));
-					fprintf (summaryPath, "\n\t", AAString[char1], "->", AAString[char2], ":", Format (ccount, 5, 0), "/",
-											 AAString[char2], "->", AAString[char1], ":", Format (ccount2, 5, 0));
-				}
-			}
-		}
-
-	}
-}	
-
-_destroyAncestralCache 			(ancCacheID);
-fprintf (substitutionsPath, CLOSE_FILE);
-fprintf (summaryPath, 		CLOSE_FILE);
-fprintf (siteReportMap, 	CLOSE_FILE);
-fprintf (stdout, "\n");
-
-*/
-/*--------------------------------------------------------------------------------------------*/
-/* 
-	Compute the difference vector between the stationary distribution at the root (efv) and the expected
-	distribution of residues after time t0.
-*/
-function computeDelta (ModelMatrixName&, efv, t_0, which_cat)
-{
-	t   	= t_0;
-	c   	= 1;
-	catVar  = which_cat;
-	rmx 	= ModelMatrixName;
-	for (r=0; r<20; r=r+1)
-	{	
-		diag = 0;
-		for (c=0; c<20; c=c+1)
-		{
-			rmx[r][c] = rmx[r][c] * efv[c];
-			diag = diag - rmx[r][c];
-		}
-		rmx[r][r] = diag;
-	}
-	return Transpose(efv)*(Exp (rmx) - {20,20}["_MATRIX_ELEMENT_ROW_==_MATRIX_ELEMENT_COLUMN_"]);
-}
-/*------------------------------------------------------------------------------*/
-
-function DoResults (residueIn)
-{
-	residueC 					= 	AAString[residueIn];
-	fprintf							(stdout, "[PHASE ",residueIn+1,".1] Model biased for ",residueC,"\n"); 
-	fprintf							(summaryPath, "[PHASE ",residueIn+1,".1] Model biased for ",residueC,"\n"); 
-
-	pv							=   1-CChi2(2(lfb_MLES[1][0]-baselineLogL),3);	/* approximate p-value */
-	fprintf							(stdout, "[PHASE ",residueIn+1,".2] Finished with the model biased for ",residueC,". Log-L = ",Format(lfb_MLES[1][0],8,5),"\n"); 
-	fprintf							(summaryPath, "[PHASE ",residueIn+1,".2] Finished with the model biased for ",residueC,". Log-L = ",Format(lfb_MLES[1][0],8,5),"\n"); 
-	
-	fr1 						= 	P_bias;
-	
-	rateAccel1					=   (computeDelta("biasedMatrix",vectorOfFrequencies,referenceL,1))[residueIn];
-	
-	fprintf							(stdout, "\n\tBias term           = ", Format(rateBiasTo,8,5),
-											 "\n\tproportion          = ", Format(fr1,8,5),
-											 "\n\tExp freq increase   = ", Format(rateAccel1*100,8,5), "%",
-											 "\n\tp-value    = ", Format(pv,8,5),"\n");
-											 
-	fprintf							(summaryPath, "\n\tBias term           = ", Format(rateBiasTo,8,5),
-											 	  "\n\tproportion          = ", Format(fr1,8,5),
-											      "\n\tExp freq increase   = ", Format(rateAccel1*100,8,5), "%",
-											      "\n\tp-value    = ", Format(pv,8,5),"\n");
-
-	LIKELIHOOD_FUNCTION_OUTPUT = 7;
-	outPath = basePath + "." + residueC;
-	fprintf (outPath, CLEAR_FILE, lfb);
-
-	byResidueSummary [residueC] = {};
-	(byResidueSummary [residueC])["p"] = pv;		
-
-	test_p_values [residueIn][0] = pv;
-	test_p_values [residueIn][1] = residueIn;
-
-	/*if (pv < 0.0025)*/
-	{
-		(byResidueSummary [residueC])["sites"] = {};		
-		(byResidueSummary [residueC])["BFs"]   = {};		
-		
-		ConstructCategoryMatrix (mmx,lfb,COMPLETE);
-		GetInformation			(catOrder, lfb);		
-		dim = Columns (mmx);
-		_MARGINAL_MATRIX_	= {2, dim};
-		
-		//fprintf(stdout, "C: ", c,"\n",c[0], "\n");
-		
-		GetInformation 				(cInfo, c);
-		GetInformation 				(_CATEGORY_VARIABLE_CDF_, catVar);
-		
-		ccc	= Columns (cInfo);
-		
-		_CATEGORY_VARIABLE_CDF_ = _CATEGORY_VARIABLE_CDF_[1][-1];
-		if (catOrder [0] == "c")
-		{
-			for (k=0; k<dim; k=k+1)
-			{
-				for (k2 = 0; k2 < ccc; k2=k2+1)
-				{
-					_MARGINAL_MATRIX_ [0][k] = _MARGINAL_MATRIX_ [0][k] + mmx[2*k2][k]  *cInfo[1][k2];
-					_MARGINAL_MATRIX_ [1][k] = _MARGINAL_MATRIX_ [1][k] + mmx[2*k2+1][k]*cInfo[1][k2];
-				}
-			}
-		}
-		else
-		{
-			for (k=0; k<dim; k=k+1)
-			{
-				for (k2 = 0; k2 < ccc; k2=k2+1)
-				{
-					_MARGINAL_MATRIX_ [0][k] = _MARGINAL_MATRIX_ [0][k] + mmx[k2][k]*cInfo[1][k2];
-					_MARGINAL_MATRIX_ [1][k] = _MARGINAL_MATRIX_ [1][k] + mmx[ccc+k2][k]*cInfo[1][k2];
-				}
-			}
-		}
-		ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "ChartAddIns" + DIRECTORY_SEPARATOR + "DistributionAddIns" + DIRECTORY_SEPARATOR + "Includes" + DIRECTORY_SEPARATOR + "posteriors.ibf");
-		
-		prior = (_CATEGORY_VARIABLE_CDF_[1])/(1-_CATEGORY_VARIABLE_CDF_[1]);
-				
-		for (k=0; k<dim; k=k+1)
-		{
-			bayesF = _MARGINAL_MATRIX_[1][k]/_MARGINAL_MATRIX_[0][k]/prior;
-			((byResidueSummary [residueC])["BFs"])[k] = bayesF;
-			if (bayesF > 100)
-			{
-				((byResidueSummary [residueC])["sites"])[Abs((byResidueSummary [residueC])["sites"])] = k+1;
-				if (Abs(bySiteSummary[k]) == 0)
-				{
-					bySiteSummary[k] = {};
-				}
-				(bySiteSummary[k])[Abs(bySiteSummary[k])] = residueC;
-			}
-		}
-		
-	}	
-	return 0;
-}
+ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + "dummy1.txt", "2": "" + "dummy2.txt","3": "" + LAST_FILE_PATH+"_all.csv", "4": "" + LAST_FILE_PATH+"_webdata.mat"});
 
 function runIterativePhase4(nuc_fit_file,grid_file,weights_file, results_file)
 {

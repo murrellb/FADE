@@ -1,5 +1,8 @@
 pThresh = 0.001;
 
+/*
+ * @param ModelMatrixName a string specifying the matrix you want to copy and and add a bias to.
+ */
 function AddABiasFADE (ModelMatrixName&, ModelMatrixName2&, biasedBase)
 {
 	ModelMatrixName2 = {20,20};
@@ -39,6 +42,9 @@ function AddABiasFADE (ModelMatrixName&, ModelMatrixName2&, biasedBase)
 	return 1;
 }
 
+/*
+ * @param ModelMatrixName points to the matrix variable you want to copy and and add a bias to.
+ */
 function AddABiasFADE2 (ModelMatrixName, ModelMatrixName2&, biasedBase)
 {
 	ModelMatrixName2 = {20,20};
@@ -201,53 +207,6 @@ function defineFadeGrid (alphaPoints, biasPoints) { // alpha = site-to-site rate
 		}
 	}
     return alphaAndBiasGrid;   
-}
-
-
-/*--------------------------------------------------------------------------------------------*/
-
-function AddABiasREL (ModelMatrixName&, ModelMatrixName2&, biasedBase)
-{
-	ModelMatrixName2 = {20,20};
-	
-	t = 1;	/* branch length, local parameter */
-	c = 1;	/* rate variation */
-	_numericRateMatrix = ModelMatrixName;
-	
-	/* the probability that site is undergoing biased substitution rates */
-	global	  P_bias = 0.1;  P_bias :< 0.5;
-	
-	
-	category catVar = (2,{{1-P_bias,P_bias}},MEAN,,{{0,1}},0,1);
-	
-	for (ri = 0; ri < 20; ri = ri+1)
-	{
-		for (ci = ri+1; ci < 20; ci = ci+1)
-		{
-			ModelMatrixName2[ri][ci] := _numericRateMatrix__[ri__][ci__] * t * c;
-			ModelMatrixName2[ci][ri] := _numericRateMatrix__[ri__][ci__] * t * c;
-		
-		}
-	}
-
-	if (biasedBase < 20)
-	{
-		global rateBiasTo 	  = 5.0;
-		global rateBiasFrom	 := 1/rateBiasTo;
-			
-		rateBiasTo    :>1;
-		relBias       :>1;	/* UNUSED ?!? */
-		for (ri = 0; ri < 20; ri = ri+1)
-		{
-			if (ri != biasedBase)
-			{
-				ModelMatrixName2[ri][biasedBase] := _numericRateMatrix__[ri__][biasedBase__] * t * c * ((catVar==1)*rateBiasTo+(catVar==0));
-				ModelMatrixName2[biasedBase][ri] := _numericRateMatrix__[ri__][biasedBase__] * t * c * ((catVar==1)*rateBiasFrom+(catVar==0));
-			}
-		}
-	}
-
-	return 1;
 }
 
 /*--------------------------------------------------------------------------------------------*/

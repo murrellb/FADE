@@ -114,7 +114,7 @@ function translateCodonToAminoAcid(inputFile, keepDeletions)
 
 	if (SKIP_OMISSIONS<0)
 	{
-		f//printf (stdout, "\n\nExecution Canceled...");
+		//fprintf (stdout, "\n\nExecution Canceled...");
 		return 0;
 	}
 	
@@ -145,47 +145,6 @@ function translateCodonToAminoAcid(inputFile, keepDeletions)
 	DataSet        bigDataSet 				= ReadFromString   (outSequences);
 	
 
-	return bigDataSet;
-	//DataSetFilter  _converterfilteredData 	= CreateFilter	   (bigDataSet,1);
-	
-/*
-	DEFAULT_FILE_SAVE_NAME = LAST_FILE_PATH;
-	stopPos = DEFAULT_FILE_SAVE_NAME $ (DIRECTORY_SEPARATOR+"([^\\"+DIRECTORY_SEPARATOR+"]+)$");
-	if (stopPos [0] >= 0)
-	{
-		stopPos = stopPos[2];
-		DEFAULT_FILE_SAVE_NAME = DEFAULT_FILE_SAVE_NAME[stopPos][Abs(DEFAULT_FILE_SAVE_NAME)] + ".prot";
-	}
-	
-	if (havePartitions)
-	{
-		DATA_FILE_PRINT_FORMAT  = 6;
-		IS_TREE_PRESENT_IN_DATA = 0;
-		DATAFILE_TREE			= 0;	
-	}
-	else
-	{
-		IS_TREE_PRESENT_IN_DATA = sht;
-		DATAFILE_TREE 			= sdt;
-	}
-	
-	
-	//SetDialogPrompt ("Save translated file to:");
-	fprintf (outputFile, CLEAR_FILE, _converterfilteredData);
-	
-	if (havePartitions && Abs (myTrees) == _pCount && Abs (splitCoordinates) == _pCount)
-	{
-		fprintf (outputFile, "\nBEGIN TREES;");
-		for (k=0; k<_pCount; k=k+1)
-		{
-			fprintf (outputFile "\n\tTree T_", k+1, " = ", myTrees[k], ";");
-		}
-		fprintf (outputFile, "\nEND TREES;\nBEGIN ASSUMPTIONS;\n");
-		for (k=0; k<_pCount; k=k+1)
-		{
-			fprintf (outputFile, "\n\tCHARSET P_", k+1, " = ", 1+(splitCoordinates[k])[0]$3, "-", 1+(splitCoordinates[k])[1]$3, ";");
-		}
-		fprintf (outputFile, "\nEND ASSUMPTIONS;\n");
-	}*/
+	return bigDataSet;	
 	
 }
