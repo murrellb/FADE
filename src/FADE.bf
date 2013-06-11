@@ -39,7 +39,7 @@ ACCEPT_ROOTED_TREES 			= 1;
 // Phase 1: Optimize the baseline model or load existing from file
 if (reloadFlag == 0) // optimize baseline model
 {
-	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{HYPHY_LIB_DIRECTORY[0][Abs(HYPHY_LIB_DIRECTORY)-2],"TemplateBatchFiles","_MFReader_.ibf"}}));
+//	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{HYPHY_LIB_DIRECTORY[0][Abs(HYPHY_LIB_DIRECTORY)-2],"TemplateBatchFiles","_MFReader_.ibf"}}));
 
 	/* new analysis, fit baseline model */
 	
