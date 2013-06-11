@@ -30,6 +30,8 @@ SKIP_MODEL_PARAMETER_LIST = 0;
 LoadFunctionLibrary ("GrabBag");
 LoadFunctionLibrary ("ReadDelimitedFiles");
 
+test_p_values = {20,2};
+
 ChoiceList						(reloadFlag, "Reload/New", 1, SKIP_NONE, "New analysis","Start a new analysis",
 																	      "Reload","Reload a baseline protein fit.");
 																		  
@@ -39,11 +41,10 @@ ACCEPT_ROOTED_TREES 			= 1;
 // Phase 1: Optimize the baseline model or load existing from file
 if (reloadFlag == 0) // optimize baseline model
 {
-//	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{HYPHY_LIB_DIRECTORY[0][Abs(HYPHY_LIB_DIRECTORY)-2],"TemplateBatchFiles","_MFReader_.ibf"}}));
-
 	/* new analysis, fit baseline model */
 	
-	DataSet	ds					 = ReadDataFile (PROMPT_FOR_FILE); // must be protein or codon alignment
+	/* this should be a protein alignment */
+	DataSet			ds 			 = ReadDataFile (PROMPT_FOR_FILE);
 	basePath 					 = LAST_FILE_PATH;
 	DataSetFilter   filteredData = CreateFilter (ds,1);
 	GetDataInfo		(checkCharacters, filteredData, "CHARACTERS");
@@ -77,8 +78,7 @@ if (reloadFlag == 0) // optimize baseline model
 	//DOES THE TREE EVEN GET REROOTED? WHAT SHOULD WE DO ON DATAMONKEY? SAME AS CURRENT DEPS: ROOT ON SELECTED NODE?
 	ChoiceList						(fixFB, "Fix Branch", 1, SKIP_NONE, "Unknown root","The character at the root of the tree is drawn from the stationary distribution",
 																		"Fix 1st sequence as root","The 1st sequence in the file (assumed to be a direct descendant of the root) is used to populate the root sequences.");
-
-
+	
 	/* check if the tree is rooted */
 	
 	treeAVL  = givenTree^0;
@@ -274,15 +274,8 @@ ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRE
 fprintf	(stdout,      "[PHASE 4] Computing posteriors and tabulating results.\n"); 
 ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + basePath,"1": "" + basePath+".allresults.csv", "2": "" + basePath+".webdata.mat"});
 
-<<<<<<< HEAD
 // GENERATING WEB RESULTS PAGE
 ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_Processor.ibf"}}), {"0": "" + basePath, "1": "" + basePath+".webdata.mat"});
-=======
-	// Phase 4 iterative
-	fprintf	(stdout,      "[PHASE 4] Computing posteriors and tabulating results.\n"); 
-	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + LAST_FILE_PATH, "1": "" + LAST_FILE_PATH+"_allresults.csv", "2": LAST_FILE_PATH+"_summary.txt", "3": "" + LAST_FILE_PATH+"_webdata.mat"});
-}
->>>>>>> 950db49cfbfd36939ed4131851b7d3662277c733
 
 //THESE FUNCTIONS MOSTLY HELP WRITE OUT GRID FILES
 function vectorToMatrix(columnVector, rows)
