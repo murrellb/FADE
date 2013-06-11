@@ -1,7 +1,6 @@
-filepath =  LAST_FILE_PATH;
 bf_path = PATH_TO_CURRENT_BF;
 AAString    = "ACDEFGHIKLMNPQRSTVWY";
-
+fscanf              (stdin, "String", filepath);
 fscanf              (stdin, "Number", _concentration);
 aminoAcids = 20;
 
@@ -83,13 +82,11 @@ function runIterativeDeterministic(file_path, bf_path, residue, _concentration)
 	normalize_by_site  = ({1,points}["1"])*(gridInfo["conditionals"]);
 	normalized_weights = (gridInfo["conditionals"])*({sites,sites}["1/normalize_by_site[_MATRIX_ELEMENT_ROW_]*(_MATRIX_ELEMENT_ROW_==_MATRIX_ELEMENT_COLUMN_)"]);
 	sum_by_site        = normalized_weights * ({sites,1}["1"]);
+
+	//Give more prior weight to the "no bias" category
+	countBetaOnes = +({points,1} ["grid[_MATRIX_ELEMENT_ROW_][1]<0.001"]);
+	priorvec = {points,1} ["_concentration*(1+(countBetaOnes-2)*(grid[_MATRIX_ELEMENT_ROW_][1]<0.001))"]; //Lacerda's kludge
 	
-
-
-	countBetaOnes = +({points,1} ["grid[_MATRIX_ELEMENT_ROW_][1]==1"]);
-	priorvec = {points,1} ["_concentration*(1+(countBetaOnes-2)*(grid[_MATRIX_ELEMENT_ROW_][1]==1))"]; // prior[i] = 1, except where beta = 1, prior[i] = (number of beta=1) - 1
-	//fprintf(stdout,"priorvec",priorvec,"\n");
-
 	weights = {1,points}["1"];
 	weights = weights * (1/(+weights));
 	oldweights = Transpose(weights);
@@ -97,21 +94,20 @@ function runIterativeDeterministic(file_path, bf_path, residue, _concentration)
 	diffSum = 1;
 	iters=1;
 	t0 = Time (1);
-	while (diffSum > 0.0000000001) {
+	while (diffSum > 0.0000001) {
 	 phiUN = {points,sites}["normalized_weights[_MATRIX_ELEMENT_ROW_][_MATRIX_ELEMENT_COLUMN_]*weights[_MATRIX_ELEMENT_ROW_]"];
 	 phiNormalizers  = ({1,points}["1"])*phiUN;
 	 phi = phiUN*({sites,sites}["1/phiNormalizers[_MATRIX_ELEMENT_ROW_]*(_MATRIX_ELEMENT_ROW_==_MATRIX_ELEMENT_COLUMN_)"]);
-	weights = (phi * ({sites,1}["1"]))+priorvec;
-	// weights = (phi * ({sites,1}["1"]))+_concentration;
+	 weights = (phi * ({sites,1}["1"]))+priorvec;
 	 weights = weights * (1/(+weights));
 	 diffVec = weights - oldweights;
 	 diffSum = +({points,1}["diffVec[_MATRIX_ELEMENT_ROW_]*diffVec[_MATRIX_ELEMENT_ROW_]"]);
-	 SetParameter (STATUS_BAR_STATUS_STRING, "Iteration: "+ iters + " ------ delta:" + diffSum + " ----- Time:" + _formatTimeString(Time(1)-t0),0);
+	 SetParameter (STATUS_BAR_STATUS_STRING, "AA:"+AAString[residue]+" Iteration: "+ iters + " ------ delta:" + diffSum + " ----- Time:" + _formatTimeString(Time(1)-t0),0);
 	 oldweights = weights;
 	 iters = iters+1;
 	 }
 
-	fprintf (stdout, "\nTime taken:" + _formatTimeString(Time(1)-t0), "\n");
+	fprintf (stdout,"\n");
 	convergefile = _sampleFile;
 	fprintf (convergefile,CLEAR_FILE, weights);
 	

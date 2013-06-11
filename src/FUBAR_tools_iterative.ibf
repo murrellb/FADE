@@ -37,8 +37,8 @@ function tabulateGridResults (points, sites, samples, _chainCount) {
     jointSamples          = {samples,points};
     perChain              = samples$_chainCount;
 
-    positive_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][1]>1"];
-    negative_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][1]==1"];
+    positive_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][1]>1.001"];
+    negative_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][1]<1.001"];
     //positive_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][0]<grid[_MATRIX_ELEMENT_ROW_][1]"];
     //negative_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][0]>grid[_MATRIX_ELEMENT_ROW_][1]"];
     diag_alpha = {points,points}["grid[_MATRIX_ELEMENT_ROW_][0]*(_MATRIX_ELEMENT_ROW_==_MATRIX_ELEMENT_COLUMN_)"];

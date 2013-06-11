@@ -1,0 +1,49 @@
+fscanf              (stdin, "String", sample_base_file);
+fscanf              (stdin, "String", outputpath);
+
+prepagepath = PATH_TO_CURRENT_BF + "prepage.html";
+htmlFileName 	= sample_base_file+".page.html";
+
+fscanf (prepagepath,REWIND, "Raw", rawHTML);
+fscanf (outputpath, REWIND, "NMatrix",primeResults);
+
+fprintf(stdout,"\n DIMENSIONS:",Rows(primeResults), " by ", Columns(primeResults),"\n");
+
+fprintf(htmlFileName,CLEAR_FILE,rawHTML);
+
+fprintf(htmlFileName,"<script type='text/javascript' language = 'javascript1.7'>\n");
+rSites = Rows(primeResults);
+fprintf(htmlFileName,"FADE_posteriors = [");
+for(site=0;site<rSites;site+=1){
+fprintf(htmlFileName,"[",site+1);
+	for(i=0;i<20;i+=1)
+	{
+		fprintf(htmlFileName,",",primeResults[site][3+i*5]);
+	}
+	if(site==rSites-1){fprintf(htmlFileName,"]\n");}else{fprintf(htmlFileName,"],\n");}
+}
+fprintf(htmlFileName,"];\n");
+
+fprintf(htmlFileName,"FADE_BFs = [");
+for(site=0;site<rSites;site+=1){
+fprintf(htmlFileName,"[",site+1);
+	for(i=0;i<20;i+=1)
+	{
+		fprintf(htmlFileName,",",primeResults[site][4+i*5]);
+	}
+	if(site==rSites-1){fprintf(htmlFileName,"]\n");}else{fprintf(htmlFileName,"],\n");}
+}
+fprintf(htmlFileName,"];\n");
+
+fprintf(htmlFileName,"data_summary = {'Data summary':{'0':'There were some sequences with 1 or more partitions.'},
+'Warnings':{'Data summary':'These sequences may not have been screened for recombination. Selection analyses of alignments with recombinants in them using a single tree may generate <u>misleading</u> results.'},
+'Partition 1':{'0':'Loads of amino acids.',
+'1':' Some number of subs/ AA  site.'},
+'FADE Settings':{'0':'Some settings were used.',
+'1':'At this point I can\'t really recall what they were.'}};
+cutoff = 0.9;_property_count=20;
+set_handlers('upload.????????');
+initial_display ();\n");
+fprintf(htmlFileName,"</script>");
+fprintf(htmlFileName,"<div class = 'row'><blockquote><small><cite title='UCSD Viral Evolution Group'> UCSD Viral Evolution Group and CFAR BIT Core 2004-2013 </cite></small></blockquote></div>");
+

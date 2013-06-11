@@ -1,6 +1,4 @@
-fscanf              (stdin, "String", nuc_fit_file);
-fscanf              (stdin, "String", grid_file);
-fscanf              (stdin, "String", weights_file);
+fscanf              (stdin, "String", _basePath);
 fscanf              (stdin, "String", results_file);
 fscanf              (stdin, "String", web_file);
 
@@ -10,8 +8,8 @@ LoadFunctionLibrary ("WriteDelimitedFiles");
 
 for(residue = 0 ; residue < 20 ; residue += 1)
 {
-	grid_file = LAST_FILE_PATH +"."+AAString[residue]+".grid_info";
-	weights_file = LAST_FILE_PATH +"."+AAString[residue]+".theta";
+	grid_file = _basePath +"."+AAString[residue]+".grid_info";
+	weights_file = _basePath +"."+AAString[residue]+".theta";
 	fscanf (grid_file, REWIND, "NMatrix,Raw", grid, site_probs);
 	fscanf (weights_file, REWIND, "NMatrix", learntWeights);
 
@@ -26,19 +24,12 @@ for(residue = 0 ; residue < 20 ; residue += 1)
 	}
 
 	transWeights = Transpose(learntWeights);
-
-	P_selection_stamp = {points,1} ["grid[_MATRIX_ELEMENT_ROW_][1]>1"];
-	//P_selection_stamp = {points,1} ["grid[_MATRIX_ELEMENT_ROW_][0]<grid[_MATRIX_ELEMENT_ROW_][1]"];
+	
+	//KLUDGE: "grid[_MATRIX_ELEMENT_ROW_][1]>0.001" to deal with removable discontinuity of Lacerda parameterization
+	P_selection_stamp = {points,1} ["grid[_MATRIX_ELEMENT_ROW_][1]>0.001"];
 	P_prior = +(learntWeights$P_selection_stamp);
-
-	//pointsWithNoBias = {points,1} ["grid[_MATRIX_ELEMENT_ROW_][1]==1"];
-	//pointsWithNoBias = {points,1} ["grid[_MATRIX_ELEMENT_ROW_][1]>1"];
-
-	//positive_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][0]<grid[_MATRIX_ELEMENT_ROW_][1]"];
-	//negative_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][0]>grid[_MATRIX_ELEMENT_ROW_][1]"];
-	positive_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][1]>1"];
-	negative_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][1]==1"];
-
+	positive_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][1]>0.001"];
+	negative_selection_stencil = {points,sites} ["grid[_MATRIX_ELEMENT_ROW_][1]<0.001"];
 	diag_alpha = {points,points}["grid[_MATRIX_ELEMENT_ROW_][0]*(_MATRIX_ELEMENT_ROW_==_MATRIX_ELEMENT_COLUMN_)"];
 	diag_beta  = {points,points}["grid[_MATRIX_ELEMENT_ROW_][1]*(_MATRIX_ELEMENT_ROW_==_MATRIX_ELEMENT_COLUMN_)"];
 	    
@@ -64,7 +55,7 @@ for(residue = 0 ; residue < 20 ; residue += 1)
 
 	bySitePosSel = {sites,5};
 	for (s = 0; s < sites; s+=1) {
-	    	SetParameter (STATUS_BAR_STATUS_STRING, "Tabulating results for site "+ s + "/" + sites + " " + _formatTimeString(Time(1)-t0),0);
+	    	SetParameter (STATUS_BAR_STATUS_STRING, "Tabulating results for AA "+AAString[residue]+" " + _formatTimeString(Time(1)-t0),0);
 	    	bySitePosSel [s][0] = alpha_matrix[s]; 
 	    	bySitePosSel [s][1] = beta_matrix[s];
 	    	bySitePosSel [s][2] = neg_sel_matrix[s];

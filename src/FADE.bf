@@ -6,11 +6,10 @@ AAString    = "ACDEFGHIKLMNPQRSTVWY";
 
 //run_residue = 16; // run only this residue, -1 => run all residues
 run_residue = -1;
-num_alpha = 20; // number of site-to-site rate variation grid points
-num_beta = 20; // number of bias grid points
+num_alpha = 15; // number of site-to-site rate variation grid points
+num_beta = 15; // number of bias grid points
 _cachingOK = 1;
 concentration = 0.5;
-runmcmc = 0; // for testing purposes only
 save_conditionals = 0;  // for testing purposes only
 
 if(run_residue < 0)
@@ -24,7 +23,7 @@ else
 
 SKIP_MODEL_PARAMETER_LIST = 0;
 
-#include "AddABias.bf";
+#include "FADE_tools.ibf";
 #include "GrabBag.bf";
 #include "FUBAR_tools_iterative.ibf";
 #include "CodonToProtein.bf";
@@ -38,6 +37,7 @@ ChoiceList						(reloadFlag, "Reload/New", 1, SKIP_NONE, "New analysis","Start a
 																		  
 ACCEPT_ROOTED_TREES 			= 1;
 
+//PHASE 1 NEEDS TO BE MOVED TO A SEPERATE FILE, SO THAT beomap CAN BE USED SO THAT THE TREE DOESN'T OPTIMIZE ON THE MASTER NODE
 // Phase 1: Optimize the baseline model or load existing from file
 if (reloadFlag == 0) // optimize baseline model
 {
@@ -73,6 +73,9 @@ if (reloadFlag == 0) // optimize baseline model
 	
 	// prompts the user for a tree, returns givenTree
 	ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "queryTree.bf");
+	
+	//DANGER POINT: NEED TO FIGURE OUT WHAT IS GOING ON WITH THE ROOTING. DO BOTH CHOICES IN THIS LIST BEHAVE PROPERLY?
+	//DOES THE TREE EVEN GET REROOTED? WHAT SHOULD WE DO ON DATAMONKEY? SAME AS CURRENT DEPS: ROOT ON SELECTED NODE?
 	ChoiceList						(fixFB, "Fix Branch", 1, SKIP_NONE, "Unknown root","The character at the root of the tree is drawn from the stationary distribution",
 																		"Fix 1st sequence as root","The 1st sequence in the file (assumed to be a direct descendant of the root) is used to populate the root sequences.");
 	
@@ -92,6 +95,7 @@ if (reloadFlag == 0) // optimize baseline model
 	{
 		/* branch to first sequence is collapsed to length zero;
 			enforcing identifiability with root sequence */
+			
 		ExecuteCommands ("givenTree."+TipName(givenTree,0)+".t:=0");
 	}
 	else
@@ -101,13 +105,12 @@ if (reloadFlag == 0) // optimize baseline model
 			return 0;
 		}
 	}
-	
+
+	//DANGER POINT: If this runs and the "fixFB>0" block above runs, then won't the tree will have two 0 length branches coming off the root?
 	/* only the sum of branch lengths leading to two immediate descendants
 		of root can be estimated; this measure prevents one of the branches
 		from collapsing to zero length */
 	ExecuteCommands					(root_left + ":=" + root_right); 
-
-
 	
 	LikelihoodFunction lf 		= 	(filteredData, givenTree);
 	fprintf							(stdout, "[PHASE 1.1] Standard model fit\n"); 
@@ -127,7 +130,6 @@ if (reloadFlag == 0) // optimize baseline model
 	fprintf (outPath, CLEAR_FILE, lf);
 	
 	baselineLogL				= res0[1][0];
-	
 }
 else
 {
@@ -174,10 +176,9 @@ else
 }
 
 treeContainsTags = (treeString||"{FG}")[0][0] != -1;
-
+//WHY DOES THIS GET CALLED AGAIN?
 root_left  = "biasedTree." + (treeAVL[(rootNode["Children"])[0]])["Name"] + ".t";
 root_right = "biasedTree." + (treeAVL[(rootNode["Children"])[1]])["Name"] + ".t";
-
 
 /* vector of branch lengths for entire tree */
 baselineBL						= BranchLength (givenTree,-1);
@@ -187,6 +188,7 @@ referenceL						= (baselineBL * (Transpose(baselineBL)["1"]))[0];
 fprintf							(stdout,      "[PHASE 1.2] Standard model fit. Log-L = ",baselineLogL,". Tree length = ",referenceL, " subs/site \n"); 
 
 ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "Utility" + DIRECTORY_SEPARATOR + "GrabBag.bf");
+//DO WE NEED THIS?
 ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "Utility" + DIRECTORY_SEPARATOR + "AncestralMapper.bf");
 
 fixGlobalParameters ("lf");
@@ -194,22 +196,8 @@ fixGlobalParameters ("lf");
 byResidueSummary = {};
 bySiteSummary	 = {};
 
-bpSplit						 = splitFilePath (LAST_FILE_PATH);
-basePath					 = bpSplit["DIRECTORY"];
-
 /*------------------------------------------------------------------------------*/
-
-if(runmcmc)
-{
-	 _fubarChainCount = prompt_for_a_value ("Number of MCMC chains to run",5,2,20,1);
-	fprintf (stdout, "[DIAGNOSTIC] FADE will use run ", _fubarChainCount, " independent chains\n"); 
-	_fubarChainLength  = prompt_for_a_value ("The length of each chain",2000000,500000,100000000,1);    
-	fprintf (stdout, "[DIAGNOSTIC] FADE will run the chains for ", _fubarChainLength, " steps\n"); 
-	_fubarChainBurnin  = prompt_for_a_value ("Discard this many samples as burn-in",_fubarChainLength$2,_fubarChainLength$20,_fubarChainLength*95$100,1);
-	fprintf (stdout, "[DIAGNOSTIC] FADE will run discard ", _fubarChainBurnin, " steps as burn-in\n"); 
-	_fubarTotalSamples = prompt_for_a_value ("How many samples should be drawn from each chain",100,10,_fubarChainLength-_fubarChainBurnin,1);    
-	fprintf (stdout, "[DIAGNOSTIC] FADE will run thin each chain down to ", _fubarTotalSamples, " samples\n"); 
-}
+//THIS IS ACTUALLY A CONCENTRATION MULTIPLIER NOW, SINCE THE PRIOR IS A VECTOR
 _fubarPriorShape = prompt_for_a_value ("The concentration parameter of the Dirichlet prior",0.5,0.001,1,0);    
 fprintf (stdout, "[DIAGNOSTIC] FADE will use the Dirichlet prior concentration parameter of ", _fubarPriorShape, "\n"); 
 
@@ -245,11 +233,12 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 
 		/* constrains tree to be congruent to that estimated under baseline model */
 		ReplicateConstraint 			("this1.?.?:=treeScaler*this2.?.?__",biasedTree,givenTree);
+		//IS THIS SHIT REQUIRED IF WE AREN'T CALLING Optimize()?
 		ExecuteCommands					(root_left + "=" + root_left);
 		ExecuteCommands					(root_right + "=" + root_right);
 		LikelihoodFunction lfb 		= 	(filteredData, biasedTree);
 		
-		gridInfoFile = LAST_FILE_PATH +"."+AAString[residue]+".grid_info";
+		gridInfoFile = basePath +"."+AAString[residue]+".grid_info";
 
 		if(_cachingOK && !gridInfoFile)
 		{  
@@ -270,45 +259,25 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 					fprintf(conditionals_out,CLEAR_FILE,getGridStringForSite(conditionalsGrid,fadeGrid,num_alpha,num_beta,_s));
 				}
 			}
+			fprintf (stdout," ---- Grid computed for AA: ",AAString[residue],"\n");
 			fprintf (gridInfoFile,CLEAR_FILE, fadeGrid, "\n", gridInfo);
 		}
-		
-		if(runmcmc) // mcmc for testing purposes only
-		{
-			_resultsFile = LAST_FILE_PATH+"." + AAString[residue] + ".mcmc.results.csv";
-			_fubarMCMCSamplesLocation =  LAST_FILE_PATH +"."+AAString[residue]+".samples";
-	      		_fubarGridInfoLocation = gridInfoFile;   
-			_lastSampleFile = _fubarMCMCSamplesLocation+"."+(_fubarChainCount-1);
-			if(_cachingOK && !_lastSampleFile  && !_resultsFile)
-			{
-				fprintf (stdout, "[CACHED] MCMC chains founds for residue: ",AAString[residue], "\n"); 
-			
-			}		
-			else
-			{			
-				thetaFile = LAST_FILE_PATH +"."+AAString[residue]+".theta";
-				// run MCMC chains for this amino acid
-				ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3_mcmc.bf"}}), {"0": "" +  _fubarMCMCSamplesLocation, "1" : "" +_fubarGridInfoLocation, "2": "" + _fubarChainCount, "3": "" +  _fubarChainLength, "4": "" + _fubarChainBurnin, "5": "" + _fubarTotalSamples, "6": "" + _fubarPriorShape});
-	       
-			        // process results of MCMC chains		
-			        ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_mcmc.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + gridInfoFile, "2": "" + _fubarMCMCSamplesLocation, "3": "" +  _fubarChainCount, "4": "" + _resultsFile});
-			}
-		}
+
 	}	
 }
 
+// Phase 3
+fprintf	(stdout,      "[PHASE 3] Computing Dirichlet weights using iterative algorithm.\n"); 
+ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3_iterative.bf"}}), {"0": "" + basePath, "1": "" +  concentration});
 
-if(mcmc == 0) // only run if didn't run mcmc, might need to change this for testing
-{
-	// Phase 3 iterative
-	fprintf	(stdout,      "[PHASE 3] Computing Dirichlet weights using iterative algorithm.\n"); 
-	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3_iterative.bf"}}), {"0": "" +  concentration});
+// Phase 4
+fprintf	(stdout,      "[PHASE 4] Computing posteriors and tabulating results.\n"); 
+ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + basePath,"1": "" + basePath+".allresults.csv", "2": "" + basePath+".webdata.mat"});
 
-	// Phase 4 iterative
-	fprintf	(stdout,      "[PHASE 4] Computing posteriors and tabulating results.\n"); 
-	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + "dummy1.txt", "2": "" + "dummy2.txt","3": "" + LAST_FILE_PATH+"_allresults.csv", "4": "" + LAST_FILE_PATH+"_webdata.mat"});
-}
+// GENERATING WEB RESULTS PAGE
+ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_Processor.ibf"}}), {"0": "" + basePath, "1": "" + basePath+".webdata.mat"});
 
+//THESE FUNCTIONS MOSTLY HELP WRITE OUT GRID FILES
 function vectorToMatrix(columnVector, rows)
 {
 	npoints = Rows(columnVector);
