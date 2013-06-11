@@ -6,7 +6,7 @@ fscanf              (stdin, "String", results_file);
 
 _fubar_do_simulations = 0;
 
-ExecuteAFile        (PATH_TO_CURRENT_BF + "FUBAR_tools.ibf");
+ExecuteAFile        (PATH_TO_CURRENT_BF + "FUBAR_tools_mcmc.ibf");
 LoadFunctionLibrary ("GrabBag");
 LoadFunctionLibrary ("WriteDelimitedFiles");
 

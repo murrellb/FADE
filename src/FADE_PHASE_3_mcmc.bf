@@ -13,7 +13,7 @@
        
 	//fprintf(stdout,"FADE PHASE 3",_sampleFile,"\t",_gridInfo,"\t",_chainsToRun,"\t",_chainLength,"\t",_chainBurnin,"\t",_chainSamples,"\t",_concentration,"\n");
 
-	ExecuteAFile        (PATH_TO_CURRENT_BF + "FUBAR_tools.ibf");
+	ExecuteAFile        (PATH_TO_CURRENT_BF + "FUBAR_tools_mcmc.ibf");
 
 	assert (_chainsToRun > 1, "Must specify at least MCMC TWO chains to run");
 

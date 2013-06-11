@@ -13,10 +13,10 @@ AAString    = "ACDEFGHIKLMNPQRSTVWY";
 run_residue = -1;
 num_alpha = 20;
 num_beta = 20;
-_cachingOK = 0;
+_cachingOK = 1;
 concentration = 0.5;
 runmcmc = 0; // for testing purposes only
-save_conditionals = 1;
+save_conditionals = 0;
 
 if(run_residue < 0)
 {
@@ -29,8 +29,8 @@ else
 
 SKIP_MODEL_PARAMETER_LIST = 0;
 
-#include "AddABias.c";
-#include "GrabBag.c";
+#include "AddABias.bf";
+#include "GrabBag.bf";
 #include "FUBAR_tools.ibf";
 #include "CodonToProtein.bf";
 LoadFunctionLibrary ("GrabBag");
@@ -310,7 +310,7 @@ for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror 
 // Phase 3 iterative
 ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_3_iterative.bf"}}), {"0": "" +  concentration});
 
-ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative2.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + "dummy1.txt", "2": "" + "dummy2.txt","3": "" + LAST_FILE_PATH+"_all.csv"});
+ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + LAST_FILE_PATH, "1" : "" + "dummy1.txt", "2": "" + "dummy2.txt","3": "" + LAST_FILE_PATH+"_all.csv"});
 
 /*
 // Phase 4 iterative
