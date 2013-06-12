@@ -1,6 +1,7 @@
 var _colorizerB = d3.interpolateRgb  (d3.rgb(0,0,255),d3.rgb(255,255,255));
 var _colorizerR = d3.interpolateRgb  (d3.rgb(255,255,255),d3.rgb(255,0,0));
 var _use_q_values = false;
+var selected = true;
 
 function dict_to_array (dict) {
         ar = []
@@ -55,6 +56,7 @@ function row_display_filter (d) {
 function initial_display  () {
     load_data_summary ("summary_div", data_summary);
     $('#filter_on_pvalue').trigger ('submit');
+	
     $('#property_plot_collapse').on('show', function () {
         plot_property_graphs("property_plot_svg",FADE_posteriors); //Using a matrix from html
     });
@@ -72,7 +74,9 @@ function set_handlers  (file_id) {
             d3.select ("#total_sites_found").selectAll("span").data (found).html (function (d) {return d;});
             return false;
         });
-
+	
+		
+	
     $('#site_rate_display').on ('show', (function (e) {
             //alert ("Show");
             //console.log (this);
@@ -104,6 +108,34 @@ function set_handlers  (file_id) {
         }
          toggle_view("property_plot_svg", parseInt($(this).attr( 'data-property-id' )), $(this).hasClass( 'active' ) ); // button state AFTER the click
     });
+	
+	$( '#deselectall' ).click(function(event) {
+        
+		
+		
+		for (var i=1;i<=20;i++)
+		{ 
+		  if (selected)
+		  {
+			 toggle_view("property_plot_svg", i, false ); // button state AFTER the click
+			 $("#deselectall").html("Select All");
+			 $("#show_property"+i).removeClass("active");
+			
+		  }
+		  else
+		  {
+		   toggle_view("property_plot_svg", i, true ); // button state AFTER the click
+		 $("#deselectall").html("Deselect All");
+		 $("#show_property"+i).addClass("active");
+
+		  }
+		 
+		 }
+		 
+		 selected = !(selected);
+		 
+   } );   
+   
 }
 
 property_plot_done = false;
@@ -145,7 +177,7 @@ function plot_property_graphs  (property_plot, property_info) {
         var y = d3.scale.linear()
             .range([height, 0]);
 
-        var color = d3.scale.category10();
+        var color = d3.scale.category20();
 
         var xAxis = d3.svg.axis()
             .scale(x)
