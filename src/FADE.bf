@@ -6,8 +6,8 @@ AAString    = "ACDEFGHIKLMNPQRSTVWY";
 
 //run_residue = 16; // run only this residue, -1 => run all residues
 run_residue = -1;
-num_alpha = 15; // number of site-to-site rate variation grid points
-num_beta = 15; // number of bias grid points
+num_alpha = 20; // number of site-to-site rate variation grid points
+num_beta = 20; // number of bias grid points
 _cachingOK = 1;
 concentration = 0.5;
 save_conditionals = 0;  // for testing purposes only
@@ -114,10 +114,10 @@ if (reloadFlag == 0) // optimize baseline model
 	/* export baseline model LF without optimization*/
 	LIKELIHOOD_FUNCTION_OUTPUT = 7;
 	outPath = basePath + ".base";
-	fprintf (outPath, CLEAR_FILE, lf, CLOSE_FILE);
+	fprintf (outPath, CLEAR_FILE, lf, CLOSE_FILE); // write out unoptimized base-line model
 
-	fprintf							(stdout,      "[PHASE 1.1] Optimizing the tree branch lengths under the baseline model.\n");
-	// optimizes the baseline model and overwrites exisiting baseline file
+	fprintf	(stdout,      "[PHASE 1.1] Optimizing the tree branch lengths under the baseline model.\n");
+	// optimizes the baseline model and overwrites existing baseline file
 	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_1_iterative.bf"}}), {"0":outPath});	
 }
 else

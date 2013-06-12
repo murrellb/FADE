@@ -1,3 +1,5 @@
+#include "FADE_tools.ibf";
+
 fscanf		    (stdin, "String", baseFile);
 fscanf              (stdin, "Number", num_alpha);
 fscanf              (stdin, "Number", num_beta);
