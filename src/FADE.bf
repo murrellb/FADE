@@ -30,20 +30,18 @@ SKIP_MODEL_PARAMETER_LIST = 0;
 LoadFunctionLibrary ("GrabBag");
 LoadFunctionLibrary ("ReadDelimitedFiles");
 
-test_p_values = {20,2};
-
 ChoiceList						(reloadFlag, "Reload/New", 1, SKIP_NONE, "New analysis","Start a new analysis",
 																	      "Reload","Reload a baseline protein fit.");
 																		  
 ACCEPT_ROOTED_TREES 			= 1;
 
-//PHASE 1 NEEDS TO BE MOVED TO A SEPERATE FILE, SO THAT beomap CAN BE USED SO THAT THE TREE DOESN'T OPTIMIZE ON THE MASTER NODE
-// Phase 1: Optimize the baseline model or load existing from file
+// Phase 1: User input in this section, optimize call in FADE_PHASE_1_iterative.bf
 if (reloadFlag == 0) // optimize baseline model
 {
 	/* new analysis, fit baseline model */
 	
-	/* this should be a protein alignment */
+	/* this should be a protein alignment */	
+	SetDialogPrompt ("\nSelect an alignment file:");
 	DataSet			ds 			 = ReadDataFile (PROMPT_FOR_FILE);
 	basePath 					 = LAST_FILE_PATH;
 	DataSetFilter   filteredData = CreateFilter (ds,1);
@@ -72,6 +70,7 @@ if (reloadFlag == 0) // optimize baseline model
 	
 	
 	// prompts the user for a tree, returns givenTree
+	fprintf(stdout,"\n");
 	ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "queryTree.bf");
 	
 	//DANGER POINT: NEED TO FIGURE OUT WHAT IS GOING ON WITH THE ROOTING. DO BOTH CHOICES IN THIS LIST BEHAVE PROPERLY?
@@ -111,51 +110,48 @@ if (reloadFlag == 0) // optimize baseline model
 		of root can be estimated; this measure prevents one of the branches
 		from collapsing to zero length */
 	ExecuteCommands					(root_left + ":=" + root_right); 
-	
-	LikelihoodFunction lf 		= 	(filteredData, givenTree);
-	fprintf							(stdout, "[PHASE 1.1] Standard model fit\n"); 
-	
-	
-	alpha := 1;
-	VERBOSITY_LEVEL				= 1;
-	AUTO_PARALLELIZE_OPTIMIZE	= 1;
-	Optimize 						(res0,lf);
-	AUTO_PARALLELIZE_OPTIMIZE	= 0;
-	VERBOSITY_LEVEL				= -1;
-	ClearConstraints(alpha);
-	
-	/* export baseline model LF */
+
+	/* export baseline model LF without optimization*/
 	LIKELIHOOD_FUNCTION_OUTPUT = 7;
 	outPath = basePath + ".base";
-	fprintf (outPath, CLEAR_FILE, lf);
-	
-	baselineLogL				= res0[1][0];
+	fprintf (outPath, CLEAR_FILE, lf, CLOSE_FILE);
+
+	fprintf							(stdout,      "[PHASE 1.1] Optimizing the tree branch lengths under the baseline model.\n");
+	// optimizes the baseline model and overwrites exisiting baseline file
+	ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_1_iterative.bf"}}), {"0":outPath});	
 }
 else
 {
-	/* import baseline LF from file */
-	modelNameString = "_customAAModelMatrix";
-	SetDialogPrompt ("Locate an existing fit:");
-	ExecuteAFile (PROMPT_FOR_FILE);
-	GetString (lfInfo,lf,-1);
-	if ((lfInfo["Models"])[0] == "mtREVModel")
-	{
-		modelNameString = "mtREVMatrix";	
-	}
-	bpSplit						 = splitFilePath (LAST_FILE_PATH);
-	basePath					 = bpSplit["DIRECTORY"] + bpSplit["FILENAME"];
-	outPath						 = basePath + ".base";
-	treeString 					 = Format (givenTree,0,0);	/* topology only, no branch lengths */
+	fprintf (stdout, "Locate an existing fit (.base):");
+	fscanf(stdin, "String", outPath);
+	fprintf							(stdout,      "[PHASE 1.1] Loading the baseline model.\n");
+}
 
-	treeAVL  = givenTree^0;
-	rootNode = treeAVL[(treeAVL[0])["Root"]];
-	if (Abs(rootNode["Children"]) != 2)
-	{
-		fprintf (stdout, "ERROR: please ensure that the tree is rooted");
-		return 0;
-	}
+// Load the optimized baseline
+modelNameString = "_customAAModelMatrix";
+
+ExecuteAFile (outPath);
+GetString (lfInfo,lf,-1);
+if ((lfInfo["Models"])[0] == "mtREVModel")
+{
+	modelNameString = "mtREVMatrix";	
+}
+bpSplit						 = splitFilePath (outPath);
+basePath					 = bpSplit["DIRECTORY"] + bpSplit["FILENAME"];
+outPath						 = basePath + ".base";
+treeString 					 = Format (givenTree,0,0);	/* topology only, no branch lengths */
+
+treeAVL  = givenTree^0;
+rootNode = treeAVL[(treeAVL[0])["Root"]];
+if (Abs(rootNode["Children"]) != 2)
+{
+	fprintf (stdout, "ERROR: please ensure that the tree is rooted");
+	return 0;
+}
 
 
+if(reloadFlag != 0)
+{
 	ChoiceList						(fixFB, "Fix Branch", 1, SKIP_NONE, "Unknown root","The character at the root of the tree is drawn from the stationary distribution",
 																		"Fix 1st sequence as root","The 1st sequence in the file (assumed to be a direct descendant of the root) is used to populate the root sequences.");
 	if (fixFB>0)
@@ -169,102 +165,34 @@ else
 			return 0;
 		}
 	}
-	
-	LFCompute (lf,LF_START_COMPUTE);
-	LFCompute (lf,baselineLogL);
-	LFCompute (lf,LF_DONE_COMPUTE);
 }
+LFCompute (lf,LF_START_COMPUTE);
+LFCompute (lf,baselineLogL);
+LFCompute (lf,LF_DONE_COMPUTE);
 
-treeContainsTags = (treeString||"{FG}")[0][0] != -1;
-//WHY DOES THIS GET CALLED AGAIN?
 root_left  = "biasedTree." + (treeAVL[(rootNode["Children"])[0]])["Name"] + ".t";
 root_right = "biasedTree." + (treeAVL[(rootNode["Children"])[1]])["Name"] + ".t";
 
+treeContainsTags = (treeString||"{FG}")[0][0] != -1;
+
 /* vector of branch lengths for entire tree */
 baselineBL						= BranchLength (givenTree,-1);
-
 referenceL						= (baselineBL * (Transpose(baselineBL)["1"]))[0];
 
-fprintf							(stdout,      "[PHASE 1.2] Standard model fit. Log-L = ",baselineLogL,". Tree length = ",referenceL, " subs/site \n"); 
+fprintf	(stdout,      "[PHASE 1.2] Standard model fit. Log-L = ",baselineLogL,". Tree length = ",referenceL, " subs/site \n"); 
 
 ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "Utility" + DIRECTORY_SEPARATOR + "GrabBag.bf");
-//DO WE NEED THIS?
-ExecuteAFile 					(HYPHY_LIB_DIRECTORY + "TemplateBatchFiles" + DIRECTORY_SEPARATOR + "Utility" + DIRECTORY_SEPARATOR + "AncestralMapper.bf");
 
 fixGlobalParameters ("lf");
-
-byResidueSummary = {};
-bySiteSummary	 = {};
-
 /*------------------------------------------------------------------------------*/
 //THIS IS ACTUALLY A CONCENTRATION MULTIPLIER NOW, SINCE THE PRIOR IS A VECTOR
-_fubarPriorShape = prompt_for_a_value ("The concentration parameter of the Dirichlet prior",0.5,0.001,1,0);    
-fprintf (stdout, "[DIAGNOSTIC] FADE will use the Dirichlet prior concentration parameter of ", _fubarPriorShape, "\n"); 
+fadeConcentrationParameter = prompt_for_a_value ("The concentration parameter of the Dirichlet prior",0.5,0.001,1,0);    
+fprintf (stdout, "[DIAGNOSTIC] FADE will use the Dirichlet prior concentration parameter of ", fadeConcentrationParameter, "\n"); 
 
-fadeGrid = 					defineFadeGrid (num_alpha, num_beta);
 
+// Phase 2
 fprintf	(stdout,      "[PHASE 2] Computing conditional likelihoods.\n"); 
-for (residue = 0; residue < 20; residue = residue + 1) // Stage 2, 3 and 4 fror each amino acid
-{
-	if(run_residue == residue || run_residue < 0)
-	{ 
-		AddABiasFADE2					(backgroundMatrix,"backgroundMatrix2",21); // 21 = don't add a bias
-		AddABiasFADE2					(backgroundMatrix,"biasedMatrix",residue);	
-
-		index = 0;
-		for(_x = 0 ; _x < num_alpha ; _x += 1)
-		{
-			for(_y = 0 ; _y < num_beta ; _y += 1)
-			{
-				//fprintf(stdout,_x,",",_y,"\t",fadeGrid[index][0],"\t",fadeGrid[index][1],"\n");
-				index += 1;
-			}
-		}
-
-
-		Model				FG = (biasedMatrix, vectorOfFrequencies, 1); // vectorOfFrequencies comes from Custom_AA_empirical.mdl, in turn imported from a file such as "HIVWithin" rate matrix is multiplied by this vector (third argument)				
-		if(treeContainsTags) // only run the background model if the tree contains tags
-		{
-			Model 			BG =  (backgroundMatrix2, vectorOfFrequencies, 1); // need to change this to baseline matrix
-		}
-
-		Tree				biasedTree = treeString;
-		global				treeScaler = 1;
-
-		/* constrains tree to be congruent to that estimated under baseline model */
-		ReplicateConstraint 			("this1.?.?:=treeScaler*this2.?.?__",biasedTree,givenTree);
-		//IS THIS SHIT REQUIRED IF WE AREN'T CALLING Optimize()?
-		ExecuteCommands					(root_left + "=" + root_left);
-		ExecuteCommands					(root_right + "=" + root_right);
-		LikelihoodFunction lfb 		= 	(filteredData, biasedTree);
-		
-		gridInfoFile = basePath +"."+AAString[residue]+".grid_info";
-
-		if(_cachingOK && !gridInfoFile)
-		{  
-			 fprintf (stdout, "[CACHED] Grid info file found for residue: ",AAString[residue], "\n"); 
-		}
-		else
-		{
-			gridInfo = computeLFOnGrid("lfb", fadeGrid, 1);
-			points = Rows (gridInfo["conditionals"]);
-			sites = Columns (gridInfo["conditionals"]);
-			
-			if(save_conditionals) // conditionals folder needs to be present in data directory, otherwise this will crash
-			{
-				conditionalsGrid = gridInfo["conditionals"];
-				for(_s = 0 ; _s < sites ; _s += 1)
-				{
-					conditionals_out = basePath+"/conditionals/"+AAString[residue]+"."+_s+".csv";
-					fprintf(conditionals_out,CLEAR_FILE,getGridStringForSite(conditionalsGrid,fadeGrid,num_alpha,num_beta,_s));
-				}
-			}
-			fprintf (stdout," ---- Grid computed for AA: ",AAString[residue],"\n");
-			fprintf (gridInfoFile,CLEAR_FILE, fadeGrid, "\n", gridInfo);
-		}
-
-	}	
-}
+ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_2_iterative.bf"}}), {"0":outPath,"1":""+num_alpha,"2":""+num_beta,"3":""+treeContainsTags});
 
 // Phase 3
 fprintf	(stdout,      "[PHASE 3] Computing Dirichlet weights using iterative algorithm.\n"); 
@@ -272,7 +200,7 @@ ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRE
 
 // Phase 4
 fprintf	(stdout,      "[PHASE 4] Computing posteriors and tabulating results.\n"); 
-ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + basePath,"1": "" + basePath+".allresults.csv", "2": "" + basePath+".webdata.mat"});
+ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_PHASE_4_iterative.bf"}}), {"0": "" + basePath,"1": "" + basePath+".allresults.csv", "2": "" + basePath+".webdata.mat", "3": "" + basePath+".summary.txt"});
 
 // GENERATING WEB RESULTS PAGE
 ExecuteAFile (Join(DIRECTORY_SEPARATOR,{{PATH_TO_CURRENT_BF[0][Abs(PATH_TO_CURRENT_BF)-2],"FADE_Processor.ibf"}}), {"0": "" + basePath, "1": "" + basePath+".webdata.mat"});

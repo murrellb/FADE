@@ -1,6 +1,7 @@
 fscanf              (stdin, "String", _basePath);
 fscanf              (stdin, "String", results_file);
 fscanf              (stdin, "String", web_file);
+fscanf              (stdin, "String", summary_file);
 
 ExecuteAFile        (PATH_TO_CURRENT_BF + "FUBAR_tools_iterative.ibf");
 LoadFunctionLibrary ("GrabBag");
@@ -53,9 +54,11 @@ for(residue = 0 ; residue < 20 ; residue += 1)
 		//fprintf(stdout,"diag_beta ",posteriors_at_site[_a], "\n");
 	}*/
 
+	SetParameter (STATUS_BAR_STATUS_STRING, "Tabulating results for amino acid: "+AAString[residue]+" ("+(residue+1)+"/20) " + _formatTimeString(Time(1)-t0),0);
+
 	bySitePosSel = {sites,5};
 	for (s = 0; s < sites; s+=1) {
-	    	SetParameter (STATUS_BAR_STATUS_STRING, "Tabulating results for AA "+AAString[residue]+" " + _formatTimeString(Time(1)-t0),0);
+	    	
 	    	bySitePosSel [s][0] = alpha_matrix[s]; 
 	    	bySitePosSel [s][1] = beta_matrix[s];
 	    	bySitePosSel [s][2] = neg_sel_matrix[s];
@@ -70,7 +73,20 @@ for(residue = 0 ; residue < 20 ; residue += 1)
 	    }
 }
 
- 
+// save summary file
+AAString    = "ACDEFGHIKLMNPQRSTVWY";
+fprintf(summary_file,CLEAR_FILE);
+for (s = 0; s < sites; s+=1) {
+	for(residue = 0 ; residue < 20 ; residue += 1)
+	{
+		if(full_table[s][residue*5+3] > 0.9) // if P(Bias > 1) > 0.9
+		{
+			fprintf(summary_file, "Site ",(s+1),"-> "+AAString[residue], ", E[Bias] = ", full_table[s][residue*5+1],", P(Bias>1) = ", full_table[s][residue*5+3], ", BF = ", full_table[s][residue*5+4],"\n"); 
+		}
+	}
+}
+
+// save full file
 fubarRowCount     = Rows (bySitePosSel);
 site_counter = {};
 for (currentFubarIndex = 0; currentFubarIndex < fubarRowCount; currentFubarIndex += 1) {
@@ -91,4 +107,7 @@ for(residue = 0 ; residue < 20 ; residue += 1)
 
 WriteSeparatedTable (results_file, header, full_table, site_counter, ",");
 fprintf(web_file, full_table);
+
+fprintf(stdout, "\nSummary result written to: ", summary_file,"\n");
+fprintf(stdout, "Full results written to: ", results_file,"\n");
 
